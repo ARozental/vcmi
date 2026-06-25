@@ -1317,7 +1317,10 @@ void CPlayerInterface::beforeObjectPropertyChanged(const SetObjectProperty * sop
 {
 	if (sop->what == ObjProperty::OWNER)
 	{
-		const CGObjectInstance * obj = cb->getObj(sop->id);
+		const CGObjectInstance * obj = cb->getObj(sop->id, false);
+
+		if(!obj)
+			return;
 
 		if(obj->ID == Obj::TOWN)
 		{
@@ -1338,7 +1341,10 @@ void CPlayerInterface::objectPropertyChanged(const SetObjectProperty * sop)
 
 	if (sop->what == ObjProperty::OWNER)
 	{
-		const CGObjectInstance * obj = cb->getObj(sop->id);
+		const CGObjectInstance * obj = cb->getObj(sop->id, false);
+
+		if(!obj)
+			return;
 
 		if(obj->ID == Obj::TOWN)
 		{
