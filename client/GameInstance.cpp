@@ -13,6 +13,7 @@
 #include "CPlayerInterface.h"
 #include "CMT.h"
 #include "CServerHandler.h"
+#include "GameEngine.h"
 #include "mapView/mapHandler.h"
 #include "globalLobby/GlobalLobbyClient.h"
 #include "mainmenu/CMainMenu.h"
