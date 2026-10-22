@@ -354,6 +354,10 @@ bfs::path VCMIDirsOSX::userDataPath() const
 
 	// ...so here goes a bit of hardcode instead
 
+	// Allows keeping all user data (game files, config, saves) in a custom location
+	if(const char * userDir = getenv("VCMI_USER_DIR"))
+		return bfs::path(userDir);
+
 	const char* homeDir = getenv("HOME"); // Should be std::getenv?
 	if (homeDir == nullptr)
 		homeDir = ".";
@@ -364,6 +368,8 @@ bfs::path VCMIDirsOSX::userCachePath() const { return userDataPath(); }
 bfs::path VCMIDirsOSX::userLogsPath() const
 {
 	// TODO: use proper objc code from Foundation framework
+	if(const auto userDir = std::getenv("VCMI_USER_DIR"))
+		return bfs::path{userDir} / "logs";
 	if(const auto homeDir = std::getenv("HOME"))
 		return bfs::path{homeDir} / "Library" / "Logs" / "vcmi";
 	return IVCMIDirsUNIX::userLogsPath();
