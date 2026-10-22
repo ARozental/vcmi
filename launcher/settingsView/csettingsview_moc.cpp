@@ -132,6 +132,9 @@ void CSettingsView::fillValidCombatAILibraries(QComboBox * comboBox, QString act
 	comboBox->addItem(tr("MMAI (experimental)"), "MMAI");
 #endif
 
+	// alpha_heroes test AI, built from agents/UpLeftAI
+	comboBox->addItem(tr("UpLeftAI (units walk to the top-left corner)"), "UpLeftAI");
+
 	fillValidAnyAILibraries(comboBox, activeAI);
 	comboBox->blockSignals(false);
 }
@@ -148,9 +151,6 @@ void CSettingsView::fillValidAdventureAILibraries(QComboBox * comboBox, QString 
 #ifdef ENABLE_NULLKILLER2_AI
 	comboBox->addItem(tr("Nullkiller2 (default, recommended)"), "Nullkiller2");
 #endif
-
-	// alpha_heroes test AI, built from agents/UpLeftAI
-	comboBox->addItem(tr("UpLeftAI (walks to the top-left corner)"), "UpLeftAI");
 
 	fillValidAnyAILibraries(comboBox, activeAI);
 	comboBox->blockSignals(false);

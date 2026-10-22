@@ -606,27 +606,27 @@
 			"properties" : {
 				"adventureAlliedAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "Nullkiller", "Nullkiller2", "UpLeftAI" ],
+					"enum" : [ "EmptyAI", "Nullkiller", "Nullkiller2" ],
 					"default" : "Nullkiller2"
 				},
 				"adventureEnemyAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "Nullkiller", "Nullkiller2", "UpLeftAI" ],
+					"enum" : [ "EmptyAI", "Nullkiller", "Nullkiller2" ],
 					"default" : "Nullkiller2"
 				},
 				"combatEnemyAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI" ],
+					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI" ],
 					"default" : "BattleAI"
 				},
 				"combatAlliedAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI" ],
+					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI" ],
 					"default" : "BattleAI"
 				},
 				"combatNeutralAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI" ],
+					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI" ],
 					"default" : "BattleAI"
 				}
 			}
