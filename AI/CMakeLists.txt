@@ -58,3 +58,10 @@ endif()
 if(ENABLE_NULLKILLER2_AI)
 	add_subdirectory(Nullkiller2)
 endif()
+
+# AI's living outside the VCMI tree, e.g. -D EXTRA_AI_DIRS="/path/to/MyAI;/path/to/OtherAI"
+set(EXTRA_AI_DIRS "" CACHE STRING "Semicolon-separated list of external AI source directories")
+foreach(EXTRA_AI_DIR ${EXTRA_AI_DIRS})
+	get_filename_component(EXTRA_AI_NAME ${EXTRA_AI_DIR} NAME)
+	add_subdirectory(${EXTRA_AI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/${EXTRA_AI_NAME})
+endforeach()

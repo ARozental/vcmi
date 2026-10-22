@@ -149,6 +149,9 @@ void CSettingsView::fillValidAdventureAILibraries(QComboBox * comboBox, QString 
 	comboBox->addItem(tr("Nullkiller2 (default, recommended)"), "Nullkiller2");
 #endif
 
+	// alpha_heroes test AI, built from agents/UpLeftAI
+	comboBox->addItem(tr("UpLeftAI (walks to the top-left corner)"), "UpLeftAI");
+
 	fillValidAnyAILibraries(comboBox, activeAI);
 	comboBox->blockSignals(false);
 }
