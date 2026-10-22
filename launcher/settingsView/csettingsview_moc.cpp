@@ -134,6 +134,7 @@ void CSettingsView::fillValidCombatAILibraries(QComboBox * comboBox, QString act
 
 	// alpha_heroes test AI, built from agents/UpLeftAI
 	comboBox->addItem(tr("UpLeftAI (units walk to the top-left corner)"), "UpLeftAI");
+	comboBox->addItem(tr("AlphaBattleAI (ONNX model from battle_model/)"), "AlphaBattleAI");
 
 	fillValidAnyAILibraries(comboBox, activeAI);
 	comboBox->blockSignals(false);

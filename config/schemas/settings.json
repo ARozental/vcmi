@@ -616,17 +616,17 @@
 				},
 				"combatEnemyAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI" ],
+					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI", "AlphaBattleAI" ],
 					"default" : "BattleAI"
 				},
 				"combatAlliedAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI" ],
+					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI", "AlphaBattleAI" ],
 					"default" : "BattleAI"
 				},
 				"combatNeutralAI" : {
 					"type" : "string",
-					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI" ],
+					"enum" : [ "EmptyAI", "StupidAI", "BattleAI", "MMAI", "UpLeftAI", "AlphaBattleAI" ],
 					"default" : "BattleAI"
 				}
 			}
