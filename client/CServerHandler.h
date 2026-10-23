@@ -124,6 +124,12 @@ class CServerHandler final : public IServerAPI, public LobbyInfo, public INetwor
 
 	void applyPackOnLobbyScreen(CPackForLobby & pack);
 
+	/// The network thread changes the lobby and connection state under ENGINE->interfaceMutex. Without a GUI
+	/// (headless) there is no ENGINE, so this mutex takes its place: the test-map start-up (debugStartTest)
+	/// reads and changes the same state from the main thread.
+	mutable std::mutex headlessInterfaceMutex;
+	std::unique_lock<std::mutex> lockInterface() const;
+
 	std::string serverHostname;
 	ui16 serverPort;
 

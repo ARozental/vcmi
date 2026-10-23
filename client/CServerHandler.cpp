@@ -244,12 +244,15 @@ void CServerHandler::connectToServer(const std::string & addr, const ui16 port)
 	}
 }
 
+std::unique_lock<std::mutex> CServerHandler::lockInterface() const
+{
+	return std::unique_lock<std::mutex>(ENGINE ? ENGINE->interfaceMutex : headlessInterfaceMutex);
+}
+
 void CServerHandler::onConnectionFailed(const std::string & errorMessage)
 {
 	assert(getState() == EClientState::CONNECTING);
-	std::unique_lock<std::mutex> interfaceLock;
-	if(ENGINE)
-		interfaceLock = std::unique_lock<std::mutex>(ENGINE->interfaceMutex);
+	auto interfaceLock = lockInterface();
 
 	if (isServerLocal())
 	{
@@ -267,9 +270,7 @@ void CServerHandler::onConnectionFailed(const std::string & errorMessage)
 
 void CServerHandler::onTimer()
 {
-	std::unique_lock<std::mutex> interfaceLock;
-	if(ENGINE)
-		interfaceLock = std::unique_lock<std::mutex>(ENGINE->interfaceMutex);
+	auto interfaceLock = lockInterface();
 
 	if(getState() == EClientState::CONNECTION_CANCELLED)
 	{
@@ -289,9 +290,7 @@ void CServerHandler::onConnectionEstablished(const NetworkConnectionPtr & netCon
 {
 	assert(getState() == EClientState::CONNECTING);
 
-	std::unique_lock<std::mutex> interfaceLock;
-	if(ENGINE)
-		interfaceLock = std::unique_lock<std::mutex>(ENGINE->interfaceMutex);
+	auto interfaceLock = lockInterface();
 
 	networkConnection = netConnection;
 
@@ -919,21 +918,28 @@ void CServerHandler::debugStartTest(std::string filename, bool save)
 	while(!settings["session"]["headless"].Bool() && !ENGINE->windows().topWindow<CLobbyScreen>())
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-	while(!mi || mapInfo->fileURI != mi->fileURI)
+	// The network thread applies the server's lobby packs (and sends replies) under lockInterface(): read and
+	// change the lobby state only while holding it. Without the lock, headless test games occasionally
+	// crashed here (in myFirstColor() and in GameConnection::sendPack).
+	auto locked = [this](auto && action) { auto lock = lockInterface(); return action(); };
+	while(!locked([&] { return logicConnection != nullptr; }))
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	while(!locked([&] { return mi && mapInfo->fileURI == mi->fileURI; }))
 	{
-		setMapInfo(mapInfo);
+		locked([&] { setMapInfo(mapInfo); });
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
 	// "Click" on color to remove us from it
-	setPlayer(myFirstColor());
-	while(myFirstColor() != PlayerColor::CANNOT_DETERMINE)
+	locked([&] { setPlayer(myFirstColor()); });
+	while(locked([&] { return myFirstColor() != PlayerColor::CANNOT_DETERMINE; }))
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 	while(true)
 	{
 		try
 		{
-			sendStartGame();
+			locked([&] { sendStartGame(); });
 			break;
 		}
 		catch(...)
@@ -970,9 +976,7 @@ public:
 
 void CServerHandler::onPacketReceived(const std::shared_ptr<INetworkConnection> &, const std::vector<std::byte> & message)
 {
-	std::unique_lock<std::mutex> interfaceLock;
-	if(ENGINE)
-		interfaceLock = std::unique_lock<std::mutex>(ENGINE->interfaceMutex);
+	auto interfaceLock = lockInterface();
 
 	if(getState() == EClientState::DISCONNECTING)
 		return;
@@ -984,9 +988,7 @@ void CServerHandler::onPacketReceived(const std::shared_ptr<INetworkConnection> 
 
 void CServerHandler::onDisconnected(const std::shared_ptr<INetworkConnection> & connection, const std::string & errorMessage)
 {
-	std::unique_lock<std::mutex> interfaceLock;
-	if(ENGINE)
-		interfaceLock = std::unique_lock<std::mutex>(ENGINE->interfaceMutex);
+	auto interfaceLock = lockInterface();
 
 	if (connection != networkConnection)
 	{
