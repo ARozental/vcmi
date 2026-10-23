@@ -3673,6 +3673,11 @@ void CGameHandler::checkVictoryLossConditionsForPlayer(PlayerColor player)
 
 	if(gameState().getMap().battleOnly)
 	{
+		// Checks can run while the battle is still being fought (paying for surrender changes resources):
+		// end the game only once its result is decided, or clients never receive it
+		for(const auto & battle : gameState().currentBattles)
+			if(!battles->battleIsEnding(*battle))
+				return;
 		for(const auto & playerIt : gameState().players)
 		{
 			PlayerEndsGame peg;

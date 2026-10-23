@@ -305,3 +305,8 @@ void BattleProcessor::battleFinalize(const BattleID & battleID, const BattleResu
 {
 	resultProcessor->battleFinalize(battleID, result);
 }
+
+bool BattleProcessor::battleIsEnding(const CBattleInfoCallback & battle) const
+{
+	return resultProcessor->battleIsEnding(battle);
+}

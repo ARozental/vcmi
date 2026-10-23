@@ -54,6 +54,8 @@ class BattleProcessor : boost::noncopyable
 	void setBattleResult(const CBattleInfoCallback & battle, EBattleResult resultType, BattleSide victoriusSide);
 
 public:
+	/// True once the battle's result is decided (its end is being processed)
+	bool battleIsEnding(const CBattleInfoCallback & battle) const;
 	explicit BattleProcessor(CGameHandler * gameHandler);
 	~BattleProcessor();
 

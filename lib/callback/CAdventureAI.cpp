@@ -34,7 +34,11 @@ void CAdventureAI::battleStart(const BattleID & battleID, const CCreatureSet * a
 {
 	assert(!battleAI);
 	assert(cbc);
-	battleAI = CDynLibHandler::getNewBattleAI(getBattleAIName());
+	// VCMI_BATTLE_AI_<COLOR> (e.g. VCMI_BATTLE_AI_RED=BattleAI) overrides this player's battle AI
+	std::string battleAIName = getBattleAIName();
+	if(const char * override = std::getenv(("VCMI_BATTLE_AI_" + boost::to_upper_copy(playerID.toString())).c_str()))
+		battleAIName = override;
+	battleAI = CDynLibHandler::getNewBattleAI(battleAIName);
 	battleAI->initBattleInterface(env, cbc);
 	battleAI->battleStart(battleID, army1, army2, tile, hero1, hero2, side, replayAllowed);
 }

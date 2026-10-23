@@ -415,7 +415,8 @@ void ApplyClientNetPackVisitor::visitPlayerEndsGame(PlayerEndsGame & pack)
 		else
 		{
 			GAME->server().endGameplay();
-			GAME->mainmenu()->menu->switchToTab("main");
+			if(GAME->mainmenu()) // no main menu in headless mode (battle-only maps end silently)
+				GAME->mainmenu()->menu->switchToTab("main");
 		}
 	}
 
