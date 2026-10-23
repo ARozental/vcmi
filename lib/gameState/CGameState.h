@@ -74,6 +74,10 @@ public:
 	const CGameState & gameState() const final { return *this; }
 
 	void preInit(Services * services);
+	/// A deep copy of this game state with its battle battleID (and no other battle), independent of this one,
+	/// e.g. for an AI that runs the battle rules on a copy (search). Copied in memory, as savegames and
+	/// BattleStart serialize them.
+	std::unique_ptr<CGameState> cloneWithBattle(const BattleID & battleID) const;
 
 	void init(const IMapService * mapService, StartInfo * si, IGameRandomizer & gameRandomizer, Load::ProgressAccumulator &, bool allowSavingRandomMap = true);
 	void updateOnLoad(const StartInfo & si);

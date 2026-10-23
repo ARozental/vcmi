@@ -33,6 +33,8 @@
 #include "../bonuses/Propagators.h"
 #include "../bonuses/Updaters.h"
 #include "../battle/BattleInfo.h"
+#include "../battle/CObstacleInstance.h"
+#include "../CStack.h"
 #include "../callback/IGameInfoCallback.h"
 #include "../callback/IGameRandomizer.h"
 #include "../campaign/CampaignState.h"
@@ -185,6 +187,48 @@ const IGameSettings & CGameState::getSettings() const
 void CGameState::preInit(Services * newServices)
 {
 	services = newServices;
+}
+
+std::unique_ptr<CGameState> CGameState::cloneWithBattle(const BattleID & battleID) const
+{
+	const BattleInfo * battle = getBattle(battleID);
+	if(!battle)
+		throw std::runtime_error("cloneWithBattle: no battle " + std::to_string(battleID.getNum()));
+
+	auto copy = std::make_unique<CGameState>();
+	{
+		// As a savegame is written and loaded: the copy's objects belong to the copy
+		CMemorySerializer memory;
+		memory.oser & const_cast<CGameState &>(*this);
+		memory.iser.cb = copy.get();
+		memory.iser.loadingGamestate = true;
+		memory.iser & *copy;
+	}
+	copy->preInit(services);
+	{
+		// As BattleStart sends a battle to a client: its units and sides refer to the copy's objects
+		CMemorySerializer memory;
+		memory.oser & const_cast<BattleInfo &>(*battle);
+		auto battleCopy = std::make_unique<BattleInfo>(copy.get());
+		memory.iser.cb = copy.get();
+		memory.iser & *battleCopy;
+		battleCopy->battleID = battleID;
+		battleCopy->localInit();
+		// A unit serializes only how it started the battle; its current state (position, health, shots, flags...)
+		// travels as JSON, as in BattleUnitsChanged
+		for(const auto & stack : battle->stacks)
+		{
+			CStack * stackCopy = battleCopy->getStack(stack->unitId(), false);
+			if(!stackCopy)
+				throw std::runtime_error("cloneWithBattle: unit " + std::to_string(stack->unitId()) + " was not copied");
+			JsonNode state;
+			const_cast<CStack &>(*stack).save(state);
+			stackCopy->load(state);
+		}
+		copy->currentBattles.push_back(std::move(battleCopy));
+	}
+	copy->nextBattleID = nextBattleID;
+	return copy;
 }
 
 void CGameState::init(const IMapService * mapService, StartInfo * si, IGameRandomizer & gameRandomizer, Load::ProgressAccumulator & progressTracking, bool allowSavingRandomMap)
