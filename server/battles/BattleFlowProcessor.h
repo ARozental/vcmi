@@ -25,14 +25,14 @@ class Unit;
 }
 VCMI_LIB_NAMESPACE_END
 
-class CGameHandler;
-class BattleProcessor;
+class IBattleServer;
+class IBattleOwner;
 
 /// Controls flow of battles - battle startup actions and switching to next stack or next round after actions
 class BattleFlowProcessor : boost::noncopyable
 {
-	BattleProcessor * owner;
-	CGameHandler * gameHandler;
+	IBattleOwner * owner;
+	IBattleServer * gameHandler;
 
 	const CStack * getNextStack(const CBattleInfoCallback & battle);
 
@@ -63,7 +63,7 @@ class BattleFlowProcessor : boost::noncopyable
 	bool makeAutomaticAction(const CBattleInfoCallback & battle, const CStack * stack, const BattleAction & ba); //used when action is taken by stack without volition of player (eg. unguided catapult attack)
 
 public:
-	explicit BattleFlowProcessor(BattleProcessor * owner, CGameHandler * newGameHandler);
+	explicit BattleFlowProcessor(IBattleOwner * owner, IBattleServer * newGameHandler);
 
 	void onBattleStarted(const CBattleInfoCallback & battle);
 	void onTacticsEnded(const CBattleInfoCallback & battle);

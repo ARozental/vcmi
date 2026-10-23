@@ -33,7 +33,7 @@
 
 #include <vstd/RNG.h>
 
-BattleActionProcessor::BattleActionProcessor(BattleProcessor * owner, CGameHandler * newGameHandler)
+BattleActionProcessor::BattleActionProcessor(IBattleOwner * owner, IBattleServer * newGameHandler)
 	: owner(owner)
 	, gameHandler(newGameHandler)
 {
@@ -732,7 +732,7 @@ bool BattleActionProcessor::makeBattleActionImpl(const CBattleInfoCallback & bat
 	}
 
 	if(ba.actionType == EActionType::WAIT || ba.actionType == EActionType::DEFEND || ba.actionType == EActionType::SHOOT || ba.actionType == EActionType::MONSTER_SPELL)
-		battle.handleObstacleTriggersForUnit(*gameHandler->spellEnv, *stack);
+		battle.handleObstacleTriggersForUnit(gameHandler->obstacleSpellEnvironment(), *stack);
 
 	return result;
 }
@@ -987,7 +987,7 @@ BattleActionProcessor::MovementResult BattleActionProcessor::moveStack(const CBa
 			{
 				if(movementSuccess && start != currentUnit->getPosition())
 				{
-					movementSuccess &= battle.handleObstacleTriggersForUnit(*gameHandler->spellEnv, *currentUnit, passed);
+					movementSuccess &= battle.handleObstacleTriggersForUnit(gameHandler->obstacleSpellEnvironment(), *currentUnit, passed);
 					passed.insert(currentUnit->getPosition());
 					if(currentUnit->doubleWide())
 						passed.insert(currentUnit->occupiedHex());
@@ -1030,7 +1030,7 @@ BattleActionProcessor::MovementResult BattleActionProcessor::moveStack(const CBa
 	if(dest == start) 	//If dest is equal to start, then we should handle obstacles for it anyway
 		passed.clear();	//Just empty passed, obstacles will handled automatically
 	//handling obstacle on the final field (separate, because it affects both flying and walking stacks)
-	movementSuccess &= battle.handleObstacleTriggersForUnit(*gameHandler->spellEnv, *currentUnit, passed);
+	movementSuccess &= battle.handleObstacleTriggersForUnit(gameHandler->obstacleSpellEnvironment(), *currentUnit, passed);
 
 	return { static_cast<int16_t>(pathDistance), !movementSuccess, false };
 }
@@ -1063,20 +1063,20 @@ void BattleActionProcessor::makeAttack(const CBattleInfoCallback & battle, const
 	const int attackerLuck = attacker->luckVal();
 	ObjectInstanceID ownerArmy = battle.getBattle()->getSideArmy(attacker->unitSide())->id;
 
-	if(attackerLuck > 0 && gameHandler->randomizer->rollGoodLuck(ownerArmy, attackerLuck))
+	if(attackerLuck > 0 && gameHandler->battleRandomizer().rollGoodLuck(ownerArmy, attackerLuck))
 		bat.flags |= BattleAttack::LUCKY;
 
-	if(attackerLuck < 0 && gameHandler->randomizer->rollBadLuck(ownerArmy, -attackerLuck))
+	if(attackerLuck < 0 && gameHandler->battleRandomizer().rollBadLuck(ownerArmy, -attackerLuck))
 		bat.flags |= BattleAttack::UNLUCKY;
 
-	if (gameHandler->randomizer->rollCombatAbility(ownerArmy, attacker->valOfBonuses(BonusType::DOUBLE_DAMAGE_CHANCE)))
+	if (gameHandler->battleRandomizer().rollCombatAbility(ownerArmy, attacker->valOfBonuses(BonusType::DOUBLE_DAMAGE_CHANCE)))
 		bat.flags |= BattleAttack::DEATH_BLOW;
 
 	const auto * ownerHero = battle.battleGetFightingHero(attacker->unitSide());
 	if(ownerHero)
 	{
 		int chance = ownerHero->valOfBonuses(BonusType::BONUS_DAMAGE_CHANCE, BonusSubtypeID(attacker->creatureId()));
-		if (gameHandler->randomizer->rollCombatAbility(ownerArmy, chance))
+		if (gameHandler->battleRandomizer().rollCombatAbility(ownerArmy, chance))
 			bat.flags |= BattleAttack::BALLISTA_DOUBLE_DMG;
 	}
 
@@ -1287,7 +1287,7 @@ void BattleActionProcessor::attackCasting(const CBattleInfoCallback & battle, bo
 				continue;
 
 			//check if spell should be cast (probability handling)
-			if (!gameHandler->randomizer->rollCombatAbility(ownerArmy, chance))
+			if (!gameHandler->battleRandomizer().rollCombatAbility(ownerArmy, chance))
 				continue;
 
 			//casting
@@ -1449,7 +1449,7 @@ void BattleActionProcessor::handleAfterAttackCasting(const CBattleInfoCallback &
 
 	for(const auto & b : *acidBreath)
 	{
-		if (b->parameters && gameHandler->randomizer->rollCombatAbility(ownerArmy, b->parameters->toNumber()))
+		if (b->parameters && gameHandler->battleRandomizer().rollCombatAbility(ownerArmy, b->parameters->toNumber()))
 			acidDamage += b->val;
 	}
 
@@ -1474,7 +1474,7 @@ void BattleActionProcessor::handleAfterAttackCasting(const CBattleInfoCallback &
 	if(attacker->hasBonusOfType(BonusType::TRANSMUTATION) && defender->isLiving() && !defender->hasBonusOfType(BonusType::TRANSMUTATION_IMMUNITY)) //transmutation mechanics, similar to WoG werewolf ability
 	{
 		int chanceToTrigger = attacker->valOfBonuses(BonusType::TRANSMUTATION);
-		if (!gameHandler->randomizer->rollCombatAbility(ownerArmy, chanceToTrigger))
+		if (!gameHandler->battleRandomizer().rollCombatAbility(ownerArmy, chanceToTrigger))
 			return;
 
 		const auto & bonusParameters = attacker->getBonus(Selector::type()(BonusType::TRANSMUTATION))->parameters;
@@ -1534,7 +1534,7 @@ void BattleActionProcessor::handleAfterAttackCasting(const CBattleInfoCallback &
 			amountToDie = bonus->parameters ? bonus->parameters->toNumber() : 0;
 		}
 
-		if (!gameHandler->randomizer->rollCombatAbility(ownerArmy, chanceToTrigger))
+		if (!gameHandler->battleRandomizer().rollCombatAbility(ownerArmy, chanceToTrigger))
 			return;
 
 		BattleStackAttacked bsa;

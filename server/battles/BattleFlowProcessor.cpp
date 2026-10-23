@@ -30,7 +30,7 @@
 
 #include <vstd/RNG.h>
 
-BattleFlowProcessor::BattleFlowProcessor(BattleProcessor * owner, CGameHandler * newGameHandler)
+BattleFlowProcessor::BattleFlowProcessor(IBattleOwner * owner, IBattleServer * newGameHandler)
 	: owner(owner)
 	, gameHandler(newGameHandler)
 {
@@ -136,7 +136,7 @@ void BattleFlowProcessor::onBattleStarted(const CBattleInfoCallback & battle)
 {
 	tryPlaceMoats(battle);
 
-	gameHandler->turnTimerHandler->onBattleStart(battle.getBattle()->getBattleID());
+	gameHandler->onBattleStart(battle.getBattle()->getBattleID());
 
 	if (battle.battleGetTacticDist() == 0)
 		onTacticsEnded(battle);
@@ -341,7 +341,7 @@ void BattleFlowProcessor::activateNextStack(const CBattleInfoCallback & battle)
 		if(!removeGhosts.changedStacks.empty())
 			gameHandler->sendAndApply(removeGhosts);
 
-		gameHandler->turnTimerHandler->onBattleNextStack(battle.getBattle()->getBattleID(), *next);
+		gameHandler->onBattleNextStack(battle.getBattle()->getBattleID(), *next);
 
 		if (!tryMakeAutomaticAction(battle, next))
 		{
@@ -382,7 +382,7 @@ bool BattleFlowProcessor::tryActivateMoralePenalty(const CBattleInfoCallback & b
 	if(!next->hadMorale && !next->waited() && nextStackMorale < 0)
 	{
 		ObjectInstanceID ownerArmy = battle.getBattle()->getSideArmy(next->unitSide())->id;
-		if (gameHandler->randomizer->rollBadMorale(ownerArmy, -nextStackMorale))
+		if (gameHandler->battleRandomizer().rollBadMorale(ownerArmy, -nextStackMorale))
 		{
 			//unit loses its turn - empty freeze action
 			BattleAction ba;
@@ -460,7 +460,7 @@ bool BattleFlowProcessor::tryMakeAutomaticActionOfRangedUnit(const CBattleInfoCa
 	const CreatureID stackCreatureId = next->unitType()->getId();
 
 	if (next->hasBonusOfType(BonusType::CPU_CONTROLLED) && (battle.battleCanShoot(next) || !next->isMeleeAttacker())
-		&& (!curOwner || !gameHandler->randomizer->rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(stackCreatureId)))))
+		&& (!curOwner || !gameHandler->battleRandomizer().rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(stackCreatureId)))))
 	{
 		BattleAction attack;
 		attack.actionType = EActionType::SHOOT;
@@ -585,7 +585,7 @@ bool BattleFlowProcessor::tryMakeAutomaticActionOfMeleeUnit(const CBattleInfoCal
 	if (!actingStack->hasBonusOfType(BonusType::CPU_CONTROLLED) || battle.battleCanShoot(actingStack))
 		return false;
 
-	if (curOwner && gameHandler->randomizer->rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(stackCreatureId))))
+	if (curOwner && gameHandler->battleRandomizer().rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(stackCreatureId))))
 		return false;
 
 	ReachabilityInfo reachabilityCache = battle.getReachability(actingStack);
@@ -688,7 +688,7 @@ bool BattleFlowProcessor::tryMakeAutomaticActionOfCatapult(const CBattleInfoCall
 			return true;
 		}
 
-		if (!curOwner || !gameHandler->randomizer->rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(CreatureID(CreatureID::CATAPULT)))))
+		if (!curOwner || !gameHandler->battleRandomizer().rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(CreatureID(CreatureID::CATAPULT)))))
 		{
 			BattleAction attack;
 			attack.actionType = EActionType::CATAPULT;
@@ -718,7 +718,7 @@ bool BattleFlowProcessor::tryMakeAutomaticActionOfFirstAidTent(const CBattleInfo
 			return true;
 		}
 
-		if (!curOwner || !gameHandler->randomizer->rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(CreatureID(CreatureID::FIRST_AID_TENT)))))
+		if (!curOwner || !gameHandler->battleRandomizer().rollCombatAbility(curOwner->id, curOwner->valOfBonuses(BonusType::MANUAL_CONTROL, BonusSubtypeID(CreatureID(CreatureID::FIRST_AID_TENT)))))
 		{
 			RandomGeneratorUtil::randomShuffle(possibleStacks, gameHandler->getRandomGenerator());
 			const CStack * toBeHealed = possibleStacks.front();
@@ -749,7 +749,7 @@ bool BattleFlowProcessor::rollGoodMorale(const CBattleInfoCallback & battle, con
 		&& nextStackMorale > 0)
 	{
 		ObjectInstanceID ownerArmy = battle.getBattle()->getSideArmy(next->unitSide())->id;
-		if (gameHandler->randomizer->rollGoodMorale(ownerArmy, nextStackMorale))
+		if (gameHandler->battleRandomizer().rollGoodMorale(ownerArmy, nextStackMorale))
 		{
 			BattleTriggerEffect bte;
 			bte.battleID = battle.getBattle()->getBattleID();
@@ -967,7 +967,7 @@ void BattleFlowProcessor::stackTurnTrigger(const CBattleInfoCallback & battle, c
 			int chance = st->valOfBonuses(BonusType::FEARFUL);
 			ObjectInstanceID opponentArmyID = battle.battleGetArmyObject(battle.otherSide(st->unitSide()))->id;
 
-			if (gameHandler->randomizer->rollCombatAbility(opponentArmyID, chance))
+			if (gameHandler->battleRandomizer().rollCombatAbility(opponentArmyID, chance))
 			{
 				bte.effect = BonusType::FEARFUL;
 				gameHandler->sendAndApply(bte);

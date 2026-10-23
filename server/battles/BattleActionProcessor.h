@@ -30,8 +30,8 @@ class CUnitState;
 
 VCMI_LIB_NAMESPACE_END
 
-class CGameHandler;
-class BattleProcessor;
+class IBattleServer;
+class IBattleOwner;
 
 /// Processes incoming battle action queries and applies requested action(s)
 class BattleActionProcessor : boost::noncopyable
@@ -48,8 +48,8 @@ class BattleActionProcessor : boost::noncopyable
 
 	using FireShieldInfo = std::vector<std::pair<const CStack *, int64_t>>;
 
-	BattleProcessor * owner;
-	CGameHandler * gameHandler;
+	IBattleOwner * owner;
+	IBattleServer * gameHandler;
 
 	MovementResult moveStack(const CBattleInfoCallback & battle, int stack, BattleHex dest); //returned value - travelled distance
 	void makeAttack(const CBattleInfoCallback & battle, const CStack * attacker, const CStack * defender, int distance, const BattleHex & targetHex, bool first, bool ranged, bool counter);
@@ -95,7 +95,7 @@ class BattleActionProcessor : boost::noncopyable
 
 	void processBattleEventTriggers(const CBattleInfoCallback & battle, CombatEventType event, const CStack * target, const CStack * secondary);
 public:
-	explicit BattleActionProcessor(BattleProcessor * owner, CGameHandler * newGameHandler);
+	explicit BattleActionProcessor(IBattleOwner * owner, IBattleServer * newGameHandler);
 
 	bool makeAutomaticBattleAction(const CBattleInfoCallback & battle, const BattleAction & ba);
 	bool makePlayerBattleAction(const CBattleInfoCallback & battle, PlayerColor player, const BattleAction & ba);

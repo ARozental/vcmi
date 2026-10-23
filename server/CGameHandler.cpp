@@ -568,6 +568,26 @@ CGameHandler::CGameHandler(IGameServer & server)
 
 CGameHandler::~CGameHandler() = default;
 
+SpellCastEnvironment & CGameHandler::obstacleSpellEnvironment()
+{
+	return *spellEnv;
+}
+
+GameRandomizer & CGameHandler::battleRandomizer()
+{
+	return *randomizer;
+}
+
+void CGameHandler::onBattleStart(const BattleID & battleID)
+{
+	turnTimerHandler->onBattleStart(battleID);
+}
+
+void CGameHandler::onBattleNextStack(const BattleID & battleID, const CStack & stack)
+{
+	turnTimerHandler->onBattleNextStack(battleID, stack);
+}
+
 ServerCallback * CGameHandler::spellcastEnvironment() const
 {
 	return spellEnv.get();

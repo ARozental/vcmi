@@ -12,6 +12,7 @@
 #include "../../lib/constants/EntityIdentifiers.h"
 #include "../../lib/constants/Enumerations.h"
 #include "../../lib/battle/BattleSide.h"
+#include "IBattleServer.h"
 
 VCMI_LIB_NAMESPACE_BEGIN
 class CGHeroInstance;
@@ -32,7 +33,7 @@ class BattleFlowProcessor;
 class BattleResultProcessor;
 
 /// Main class for battle handling. Contains all public interface for battles that is accessible from outside, e.g. for CGameHandler
-class BattleProcessor : boost::noncopyable
+class BattleProcessor : public IBattleOwner, boost::noncopyable
 {
 	friend class BattleActionProcessor;
 	friend class BattleFlowProcessor;
@@ -43,15 +44,15 @@ class BattleProcessor : boost::noncopyable
 	std::unique_ptr<BattleFlowProcessor> flowProcessor;
 	std::unique_ptr<BattleResultProcessor> resultProcessor;
 
-	void updateGateState(const CBattleInfoCallback & battle);
+	void updateGateState(const CBattleInfoCallback & battle) override;
 	void engageIntoBattle(PlayerColor player);
 
-	bool checkBattleStateChanges(const CBattleInfoCallback & battle);
+	bool checkBattleStateChanges(const CBattleInfoCallback & battle) override;
 	BattleID setupBattle(int3 tile, BattleSideArray<const CArmedInstance *> armies, BattleSideArray<const CGHeroInstance *> heroes, const BattleLayout & layout, const CGTownInstance *town);
 
-	bool makeAutomaticBattleAction(const CBattleInfoCallback & battle, const BattleAction & ba);
+	bool makeAutomaticBattleAction(const CBattleInfoCallback & battle, const BattleAction & ba) override;
 
-	void setBattleResult(const CBattleInfoCallback & battle, EBattleResult resultType, BattleSide victoriusSide);
+	void setBattleResult(const CBattleInfoCallback & battle, EBattleResult resultType, BattleSide victoriusSide) override;
 
 public:
 	/// True once the battle's result is decided (its end is being processed)

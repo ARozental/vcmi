@@ -12,6 +12,7 @@
 #include <vcmi/Environment.h>
 
 #include "../lib/callback/IGameEventCallback.h"
+#include "battles/IBattleServer.h"
 #include "../lib/LoadProgress.h"
 #include "../lib/ScriptHandler.h"
 #include "../lib/gameState/GameStatistics.h"
@@ -60,7 +61,7 @@ class CObjectVisitQuery;
 class NewTurnProcessor;
 class IGameServer;
 
-class CGameHandler : public Environment, public IGameEventCallback
+class CGameHandler : public Environment, public IGameEventCallback, public IBattleServer
 {
 	IGameServer & server;
 
@@ -94,13 +95,17 @@ public:
 	vstd::CLoggerBase * logger() const override;
 	events::EventBus * eventBus() const override;
 	IGameServer & gameServer() const;
-	ServerCallback * spellcastEnvironment() const;
+	ServerCallback * spellcastEnvironment() const override;
+	SpellCastEnvironment & obstacleSpellEnvironment() override;
+	GameRandomizer & battleRandomizer() override;
+	void onBattleStart(const BattleID & battleID) override;
+	void onBattleNextStack(const BattleID & battleID, const CStack & stack) override;
 
 	bool isBlockedByQueries(const CPackForServer *pack, PlayerColor player);
 	bool isAllowedExchange(ObjectInstanceID id1, ObjectInstanceID id2);
 	void giveSpells(const CGTownInstance *t, const CGHeroInstance *h);
 
-	IGameInfoCallback & gameInfo();
+	IGameInfoCallback & gameInfo() override;
 	const CGameState & gameState() const { return *gs; }
 
 	// Helpers to create new object of specified type
@@ -178,7 +183,7 @@ public:
 	void changeFogOfWar(const FowTilesType &tiles, PlayerColor player,ETileVisibility mode) override;
 	
 	void castSpell(const spells::Caster * caster, SpellID spellID, const int3 &pos) override;
-	void useChargeBasedSpell(const ObjectInstanceID & heroObjectID, const SpellID & spellID);
+	void useChargeBasedSpell(const ObjectInstanceID & heroObjectID, const SpellID & spellID) override;
 
 	/// Returns hero that is currently visiting this object, or nullptr if no visit is active
 	const CGHeroInstance * getVisitingHero(const CGObjectInstance *obj);
@@ -251,7 +256,7 @@ public:
 	void onNewTurn();
 	void addStatistics(StatisticDataSet &stat) const;
 
-	bool complain(const std::string &problem); //sends message to all clients, prints on the logs and return true
+	bool complain(const std::string &problem) override; //sends message to all clients, prints on the logs and return true
 	void objectVisited( const CGObjectInstance * obj, const CGHeroInstance * h );
 	void objectVisitEnded(const ObjectInstanceID & heroObjectID, PlayerColor player);
 	bool dig(const CGHeroInstance *h);
