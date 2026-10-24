@@ -37,7 +37,7 @@ struct SpellEffectValue
 	}
 };
 
-class UnitEffect : public Effect
+class DLL_LINKAGE UnitEffect : public Effect
 {
 public:
 	void adjustTargetTypes(std::vector<TargetType> & types) const override;
