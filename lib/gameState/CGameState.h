@@ -78,6 +78,9 @@ public:
 	/// e.g. for an AI that runs the battle rules on a copy (search). Copied in memory, as savegames and
 	/// BattleStart serialize them.
 	std::unique_ptr<CGameState> cloneWithBattle(const BattleID & battleID) const;
+	/// Puts a copy of battle (of a game state this one was cloned from, in any later state) in place of this game
+	/// state's battle with the same id, e.g. to try another action on a copy from the same start
+	void restoreBattle(const BattleInfo & battle);
 
 	void init(const IMapService * mapService, StartInfo * si, IGameRandomizer & gameRandomizer, Load::ProgressAccumulator &, bool allowSavingRandomMap = true);
 	void updateOnLoad(const StartInfo & si);

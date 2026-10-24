@@ -59,7 +59,7 @@ public:
 	}
 };
 
-class DLL_LINKAGE GameRandomizer final : public IGameRandomizer
+class DLL_LINKAGE GameRandomizer final : public IGameRandomizer, public IBattleRandomizer
 {
 	struct HeroSkillRandomizer
 	{
@@ -106,12 +106,12 @@ public:
 	SecondarySkill rollSecondarySkillForLevelup(const CGHeroInstance * hero, const std::set<SecondarySkill> & candidates) override;
 	std::vector<SecondarySkill> rollSecondarySkills(const CGHeroInstance * hero) override;
 
-	bool rollGoodMorale(ObjectInstanceID actor, int moraleValue);
-	bool rollBadMorale(ObjectInstanceID actor, int moraleValue);
-	bool rollGoodLuck(ObjectInstanceID actor, int luckValue);
-	bool rollBadLuck(ObjectInstanceID actor, int luckValue);
+	bool rollGoodMorale(ObjectInstanceID actor, int moraleValue) override;
+	bool rollBadMorale(ObjectInstanceID actor, int moraleValue) override;
+	bool rollGoodLuck(ObjectInstanceID actor, int luckValue) override;
+	bool rollBadLuck(ObjectInstanceID actor, int luckValue) override;
 
-	bool rollCombatAbility(ObjectInstanceID actor, int percentageChance);
+	bool rollCombatAbility(ObjectInstanceID actor, int percentageChance) override;
 
 	CreatureID rollCreature() override;
 	CreatureID rollCreature(int tier) override;

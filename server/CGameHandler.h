@@ -97,7 +97,7 @@ public:
 	IGameServer & gameServer() const;
 	ServerCallback * spellcastEnvironment() const override;
 	SpellCastEnvironment & obstacleSpellEnvironment() override;
-	GameRandomizer & battleRandomizer() override;
+	IBattleRandomizer & battleRandomizer() override;
 	void onBattleStart(const BattleID & battleID) override;
 	void onBattleNextStack(const BattleID & battleID, const CStack & stack) override;
 

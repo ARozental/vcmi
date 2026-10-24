@@ -45,4 +45,19 @@ public:
 	virtual vstd::RNG & getDefault() = 0;
 };
 
+/// The battle rules' luck, morale and creature ability rolls (BattleActionProcessor, BattleFlowProcessor). GameRandomizer
+/// is the game's; a copy of a battle (e.g. for an AI's search) can roll its own way.
+class DLL_LINKAGE IBattleRandomizer
+{
+public:
+	virtual ~IBattleRandomizer() = default;
+
+	virtual bool rollGoodMorale(ObjectInstanceID actor, int moraleValue) = 0;
+	virtual bool rollBadMorale(ObjectInstanceID actor, int moraleValue) = 0;
+	virtual bool rollGoodLuck(ObjectInstanceID actor, int luckValue) = 0;
+	virtual bool rollBadLuck(ObjectInstanceID actor, int luckValue) = 0;
+	/// True with percentageChance percent
+	virtual bool rollCombatAbility(ObjectInstanceID actor, int percentageChance) = 0;
+};
+
 VCMI_LIB_NAMESPACE_END

@@ -18,7 +18,7 @@ class BattleAction;
 class BattleID;
 class CBattleInfoCallback;
 class CStack;
-class GameRandomizer;
+class IBattleRandomizer;
 class IGameInfoCallback;
 class ServerCallback;
 class SpellCastEnvironment;
@@ -48,7 +48,7 @@ public:
 
 	virtual vstd::RNG & getRandomGenerator() = 0;
 	/// Luck, morale and creature ability rolls
-	virtual GameRandomizer & battleRandomizer() = 0;
+	virtual IBattleRandomizer & battleRandomizer() = 0;
 
 	virtual IGameInfoCallback & gameInfo() = 0;
 	virtual void giveResource(PlayerColor player, GameResID which, int val) = 0;

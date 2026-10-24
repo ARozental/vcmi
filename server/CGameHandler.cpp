@@ -573,7 +573,7 @@ SpellCastEnvironment & CGameHandler::obstacleSpellEnvironment()
 	return *spellEnv;
 }
 
-GameRandomizer & CGameHandler::battleRandomizer()
+IBattleRandomizer & CGameHandler::battleRandomizer()
 {
 	return *randomizer;
 }

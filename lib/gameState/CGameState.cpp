@@ -205,30 +205,39 @@ std::unique_ptr<CGameState> CGameState::cloneWithBattle(const BattleID & battleI
 		memory.iser & *copy;
 	}
 	copy->preInit(services);
-	{
-		// As BattleStart sends a battle to a client: its units and sides refer to the copy's objects
-		CMemorySerializer memory;
-		memory.oser & const_cast<BattleInfo &>(*battle);
-		auto battleCopy = std::make_unique<BattleInfo>(copy.get());
-		memory.iser.cb = copy.get();
-		memory.iser & *battleCopy;
-		battleCopy->battleID = battleID;
-		battleCopy->localInit();
-		// A unit serializes only how it started the battle; its current state (position, health, shots, flags...)
-		// travels as JSON, as in BattleUnitsChanged
-		for(const auto & stack : battle->stacks)
-		{
-			CStack * stackCopy = battleCopy->getStack(stack->unitId(), false);
-			if(!stackCopy)
-				throw std::runtime_error("cloneWithBattle: unit " + std::to_string(stack->unitId()) + " was not copied");
-			JsonNode state;
-			const_cast<CStack &>(*stack).save(state);
-			stackCopy->load(state);
-		}
-		copy->currentBattles.push_back(std::move(battleCopy));
-	}
+	copy->restoreBattle(*battle);
 	copy->nextBattleID = nextBattleID;
 	return copy;
+}
+
+void CGameState::restoreBattle(const BattleInfo & battle)
+{
+	// As BattleStart sends a battle to a client: its units and sides refer to this game state's objects
+	CMemorySerializer memory;
+	memory.oser & const_cast<BattleInfo &>(battle);
+	auto battleCopy = std::make_unique<BattleInfo>(this);
+	memory.iser.cb = this;
+	memory.iser & *battleCopy;
+	battleCopy->battleID = battle.battleID;
+	battleCopy->localInit();
+	// A unit serializes only how it started the battle; its current state (position, health, shots, flags...)
+	// travels as JSON, as in BattleUnitsChanged
+	for(const auto & stack : battle.stacks)
+	{
+		CStack * stackCopy = battleCopy->getStack(stack->unitId(), false);
+		if(!stackCopy)
+			throw std::runtime_error("restoreBattle: unit " + std::to_string(stack->unitId()) + " was not copied");
+		JsonNode state;
+		const_cast<CStack &>(*stack).save(state);
+		stackCopy->load(state);
+	}
+	for(auto & existing : currentBattles)
+		if(existing->battleID == battle.battleID)
+		{
+			existing = std::move(battleCopy);
+			return;
+		}
+	currentBattles.push_back(std::move(battleCopy));
 }
 
 void CGameState::init(const IMapService * mapService, StartInfo * si, IGameRandomizer & gameRandomizer, Load::ProgressAccumulator & progressTracking, bool allowSavingRandomMap)
