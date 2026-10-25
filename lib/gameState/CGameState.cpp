@@ -768,6 +768,9 @@ void CGameState::initStartingBonus(IGameRandomizer & gameRandomizer)
 {
 	if (scenarioOps->mode == EStartMode::CAMPAIGN)
 		return;
+	// Battle only mode plays the heroes exactly as set up: no random artifact, gold or resources
+	if (map->battleOnly)
+		return;
 	// These are the single scenario bonuses; predefined
 	// campaign bonuses are spread out over other init* functions.
 
