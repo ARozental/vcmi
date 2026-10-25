@@ -68,8 +68,8 @@ class CGameHandler : public Environment, public IGameEventCallback, public IBatt
 public:
 	std::unique_ptr<HeroPoolProcessor> heroPool;
 	std::unique_ptr<BattleProcessor> battles;
-	/// Battle only mode: set once the game's battle has been started (TurnOrderProcessor::onGameStarted); checks
-	/// before that (e.g. wandering monsters splitting into stacks) do not end the game
+	/// Battle only mode: set when the game's battle starts (startBattle; it can end before onGameStarted returns, e.g.
+	/// arrow towers killing the attackers); checks before that (wandering monsters splitting) do not end the game
 	bool battleOnlyStarted = false;
 	std::unique_ptr<QueriesProcessor> queries;
 	std::unique_ptr<TurnOrderProcessor> turnOrder;

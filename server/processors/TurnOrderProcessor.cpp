@@ -386,7 +386,6 @@ void TurnOrderProcessor::onGameStarted()
 			monsters.at(0)->onHeroVisit(*gameHandler, heroes.at(0)); // a hero attacks wandering monsters (as visiting them)
 		else
 			towns.at(0)->onHeroVisit(*gameHandler, heroes.at(0));
-		gameHandler->battleOnlyStarted = true;
 
 		return;
 	}
