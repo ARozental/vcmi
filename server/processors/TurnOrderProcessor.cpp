@@ -21,6 +21,7 @@
 #include "../../lib/mapObjects/CGObjectInstance.h"
 #include "../../lib/mapObjects/CGHeroInstance.h"
 #include "../../lib/mapObjects/CGTownInstance.h"
+#include "../../lib/mapObjects/CGCreature.h"
 #include "../../lib/gameState/CGameState.h"
 #include "../../lib/pathfinder/CPathfinder.h"
 #include "../../lib/pathfinder/PathfinderOptions.h"
@@ -378,10 +379,14 @@ void TurnOrderProcessor::onGameStarted()
 		for (auto hero : heroes)
 			if (auto cmd = hero->getCommander())
 				const_cast<CCommanderInstance*>(cmd)->setAlive(false); // TODO: support commanders in battle mode setup
+		auto monsters = gameHandler->gameState().getMap().getObjects<CGCreature>();
 		if(!towns.size() && heroes.size() == 2)
 			gameHandler->startBattle(heroes.at(0), heroes.at(1));
+		else if(!towns.size() && heroes.size() == 1 && monsters.size() == 1)
+			monsters.at(0)->onHeroVisit(*gameHandler, heroes.at(0)); // a hero attacks wandering monsters (as visiting them)
 		else
 			towns.at(0)->onHeroVisit(*gameHandler, heroes.at(0));
+		gameHandler->battleOnlyStarted = true;
 
 		return;
 	}
