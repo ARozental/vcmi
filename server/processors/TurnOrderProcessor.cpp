@@ -379,6 +379,14 @@ void TurnOrderProcessor::onGameStarted()
 		for (auto hero : heroes)
 			if (auto cmd = hero->getCommander())
 				const_cast<CCommanderInstance*>(cmd)->setAlive(false); // TODO: support commanders in battle mode setup
+		// Training scenarios set what a map cannot: a player's gold (VCMI_BATTLE_GOLD_<COLOR>, e.g. whether surrendering
+		// is affordable) and the hero's mana left, as a fraction of its pool (VCMI_BATTLE_MANA_<COLOR>)
+		for(const auto & [color, state] : gameHandler->gameState().players)
+			if(const char * gold = std::getenv(("VCMI_BATTLE_GOLD_" + boost::to_upper_copy(color.toString())).c_str()))
+				gameHandler->giveResource(color, EGameResID::GOLD, std::stoi(gold) - state.resources[EGameResID::GOLD]);
+		for(auto hero : heroes)
+			if(const char * mana = std::getenv(("VCMI_BATTLE_MANA_" + boost::to_upper_copy(hero->getOwner().toString())).c_str()))
+				gameHandler->setManaPoints(hero->id, static_cast<int>(std::lround(std::stod(mana) * hero->manaLimit())));
 		auto monsters = gameHandler->gameState().getMap().getObjects<CGCreature>();
 		if(!towns.size() && heroes.size() == 2)
 			gameHandler->startBattle(heroes.at(0), heroes.at(1));
