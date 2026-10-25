@@ -392,6 +392,11 @@ void BattleResultProcessor::endBattleConfirm(const CBattleInfoCallback & battle)
 	raccepted.winnerSide = finishingBattle->winnerSide;
 	gameHandler->sendAndApply(raccepted);
 
+	// A battle-only game ends with its battle's result: what follows it can wait for a player who never gets a turn
+	// (the winner's level-up dialog is only sent once the player's UI is ready for dialogs), and the game hung
+	if(gameHandler->gameInfo().getMapHeader()->battleOnly)
+		gameHandler->checkVictoryLossConditions({finishingBattle->loser, finishingBattle->victor});
+
 	gameHandler->queries->popIfTop(battleQuery); // Workaround to remove battle query for AI case. TODO Think of a cleaner solution.
 	//--> continuation (battleFinalize) occurs after level-up gameHandler->queries are handled or on removing query
 }
