@@ -51,7 +51,7 @@ bool ObjectIdRef::operator<(const ObjectIdRef & rhs) const
 	return id < rhs.id;
 }
 
-HeroPtr::HeroPtr(const CGHeroInstance * input, const CPlayerSpecificInfoCallback * cpsic) : hero(input), cpsic(cpsic) {}
+HeroPtr::HeroPtr(const CGHeroInstance * input, const CPlayerSpecificInfoCallback * cpsic) : hero(input), heroId(input ? input->id : ObjectInstanceID::NONE), cpsic(cpsic) {}
 
 bool HeroPtr::operator<(const HeroPtr & rhs) const
 {
@@ -60,9 +60,7 @@ bool HeroPtr::operator<(const HeroPtr & rhs) const
 
 ObjectInstanceID HeroPtr::idOrNone() const
 {
-	if (hero)
-		return hero->id;
-	return ObjectInstanceID::NONE;
+	return hero ? heroId : ObjectInstanceID::NONE; // never through the pointer: the hero may be gone (a retreat)
 }
 
 std::string HeroPtr::nameOrDefault() const

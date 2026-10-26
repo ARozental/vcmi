@@ -76,6 +76,7 @@ struct DLL_EXPORT HeroPtr
 {
 private:
 	const CGHeroInstance * hero;
+	ObjectInstanceID heroId; // kept: the hero object can be deleted while a HeroPtr to it still sits in a map
 	const CPlayerSpecificInfoCallback * cpsic;
 	bool verify(bool verbose = true) const;
 
