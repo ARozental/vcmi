@@ -110,7 +110,7 @@ public:
 	AIGateway * aiGw;
 	/// Same value as AIGateway->cc
 	std::shared_ptr<CCallback> cc;
-	std::mutex aiStateMutex;
+	mutable std::mutex aiStateMutex; // also held while planning (decompose, buildPlanAndFilter, choseBestTask): they read the analyzers
 	mutable ThreadInterruption makingTurnInterruption;
 
 	Nullkiller();

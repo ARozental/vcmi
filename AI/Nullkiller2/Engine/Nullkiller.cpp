@@ -166,6 +166,7 @@ void TaskPlan::mergeAndFilter(const TSubgoal & task)
 
 Goals::TTask Nullkiller::choseBestTask(Goals::TGoalVec & tasks) const
 {
+	std::unique_lock lockGuard(aiStateMutex);
 	if(tasks.empty())
 	{
 		return taskptr(Invalid());
@@ -187,6 +188,7 @@ Goals::TTask Nullkiller::choseBestTask(Goals::TGoalVec & tasks) const
 
 Goals::TTaskVec Nullkiller::buildPlanAndFilter(TGoalVec & tasks, int priorityTier) const
 {
+	std::unique_lock lockGuard(aiStateMutex);
 	TaskPlan taskPlan;
 
 	tbb::parallel_for(
@@ -222,6 +224,9 @@ Goals::TTaskVec Nullkiller::buildPlanAndFilter(TGoalVec & tasks, int priorityTie
 void Nullkiller::decompose(Goals::TGoalVec & results, const Goals::TSubgoal& behavior, int decompositionMaxDepth) const
 {
 	makingTurnInterruption.interruptionPoint();
+	// alpha_heroes bug fix: async handlers (heroGotLevel: heroManager->update() clears heroToRoleMap) changed the state
+	// while the parallel planner read it, a crash in HeroManager::getHeroRoleOrDefault
+	std::unique_lock lockGuard(aiStateMutex);
 	logAi->debug("Decomposing behavior %s", behavior->toString());
 	const auto start = std::chrono::high_resolution_clock::now();
 	decomposer->decompose(results, behavior, decompositionMaxDepth);
