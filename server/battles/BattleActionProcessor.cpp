@@ -794,7 +794,9 @@ BattleActionProcessor::MovementResult BattleActionProcessor::moveStack(const CBa
 	if (battle.battleGetTacticDist() > 0 && unitMovementRange > 0)
 		unitMovementRange = GameConstants::BFIELD_SIZE;
 
-	if (pathDistance > unitMovementRange)
+	// No path (getPath gives an empty one at distance 0 for an unreachable hex): rejected like a distant one. Before,
+	// a walker went on below and threw "Movement terminated abnormally", uncaught on the server thread: the game aborted.
+	if (pathDistance > unitMovementRange || unitPath.empty())
 	{
 		gameHandler->complain("Given destination is not reachable!");
 		return { 0, false, true };
