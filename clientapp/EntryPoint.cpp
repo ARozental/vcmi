@@ -19,6 +19,7 @@
 #include "../client/CServerHandler.h"
 #include "../client/GameEngine.h"
 #include "../client/GameInstance.h"
+#include "../client/TestQueue.h"
 #include "../client/gui/CursorHandler.h"
 #include "../client/gui/WindowHandler.h"
 #include "../client/mainmenu/CMainMenu.h"
@@ -351,7 +352,18 @@ int main(int argc, char * argv[])
 		session["oneGoodAI"].Bool() = vm.count("oneGoodAI");
 		session["aiSolo"].Bool() = false;
 	
-		if(vm.count("testmap"))
+		if(TestQueue::get() && settings["session"]["headless"].Bool()) // alpha_heroes (not a bug fix): game after game
+		{
+			session["onlyai"].Bool() = true;
+			while(const auto map = TestQueue::get()->next())
+			{
+				session["testmap"].String() = *map;
+				GAME->server().debugStartTest(*map, false);
+				TestQueue::get()->waitForGameOver();
+			}
+			GAME->onShutdownRequested(false);
+		}
+		else if(vm.count("testmap"))
 		{
 			session["testmap"].String() = vm["testmap"].as<std::string>();
 			session["onlyai"].Bool() = true;

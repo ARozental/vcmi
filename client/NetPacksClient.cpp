@@ -11,6 +11,7 @@
 #include "ClientNetPackVisitors.h"
 
 #include "Client.h"
+#include "TestQueue.h"
 #include "CPlayerInterface.h"
 #include "windows/GUIClasses.h"
 #include "windows/CCastleInterface.h"
@@ -426,7 +427,14 @@ void ApplyClientNetPackVisitor::visitPlayerEndsGame(PlayerEndsGame & pack)
 	{
 		logAi->info("Player %s %s. Ending game.", pack.player.toString(), pack.victoryLossCheckResult.victory() ? "won" : "lost");
 
-		GAME->onShutdownRequested(settings["session"]["spectate"].Bool()); // if spectator is active ask to close client or not
+		if(auto * queue = TestQueue::get()) // alpha_heroes (not a bug fix): the queue's next game, in this process
+		{
+			if(GAME->server().client)
+				GAME->server().endGameplay();
+			queue->gameOver();
+		}
+		else
+			GAME->onShutdownRequested(settings["session"]["spectate"].Bool()); // if spectator is active ask to close client or not
 	}
 }
 

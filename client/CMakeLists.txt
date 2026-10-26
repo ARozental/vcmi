@@ -212,6 +212,7 @@ set(vcmiclientcommon_SRCS
 	PlayerLocalState.cpp
 	CServerHandler.cpp
 	Client.cpp
+	TestQueue.cpp
 	ClientCommandManager.cpp
 	GameChatHandler.cpp
 	HeroMovementController.cpp
@@ -461,6 +462,7 @@ set(vcmiclientcommon_HEADERS
 	GameInstance.h
 	PlayerLocalState.h
 	CServerHandler.h
+	TestQueue.h
 	Client.h
 	ClientCommandManager.h
 	ClientNetPackVisitors.h
