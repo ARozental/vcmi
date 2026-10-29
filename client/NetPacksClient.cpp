@@ -397,6 +397,14 @@ void ApplyClientNetPackVisitor::visitChangeObjPos(ChangeObjPos & pack)
 
 void ApplyClientNetPackVisitor::visitPlayerEndsGame(PlayerEndsGame & pack)
 {
+	// alpha_heroes bug fix: a test-map game of 3 or 4 players ended for all of them when red was knocked out; now red's
+	// loss ends it only when no other player is still in it (a battle-only game against wandering monsters has red
+	// alone). Read first: ending the gameplay below deletes the game state
+	const bool othersPlay = std::any_of(gs.players.begin(), gs.players.end(), [&pack](const auto & player)
+	{
+		return player.first != pack.player && player.first.isValidPlayer() && player.second.status == EPlayerStatus::INGAME;
+	});
+
 	callAllInterfaces(cl, &IGameEventsReceiver::gameOver, pack.player, pack.victoryLossCheckResult);
 
 	bool localHumanWinsGame = vstd::contains(cl.playerint, pack.player) && cl.gameInfo().getPlayerState(pack.player)->human && pack.victoryLossCheckResult.victory();
@@ -422,8 +430,10 @@ void ApplyClientNetPackVisitor::visitPlayerEndsGame(PlayerEndsGame & pack)
 	}
 
 	// In auto testing pack.mode we always close client if red pack.player won or lose, or when anyone won: the game is
-	// over then (alpha_heroes bug fix: on a map without red, e.g. Freedom, the client waited forever after the game)
-	if(!settings["session"]["testmap"].isNull() && (pack.player == PlayerColor(0) || pack.victoryLossCheckResult.victory()))
+	// over then (alpha_heroes bug fix: on a map without red, e.g. Freedom, the client waited forever after the game).
+	// Red losing ends it only when no other player is still in the game (othersPlay, above); a silent end (a battle-only
+	// game's: every player's in turn, red first, no victory) ends it as before
+	if(!settings["session"]["testmap"].isNull() && ((pack.player == PlayerColor(0) && (!othersPlay || pack.silentEnd)) || pack.victoryLossCheckResult.victory()))
 	{
 		logAi->info("Player %s %s. Ending game.", pack.player.toString(), pack.victoryLossCheckResult.victory() ? "won" : "lost");
 
