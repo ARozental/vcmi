@@ -318,6 +318,11 @@ std::optional<PlayerColor> CClient::findPlayerColorForSpectatorInterface() const
 
 std::string CClient::aiNameForPlayer(const PlayerSettings & ps, bool battleAI, bool alliedToHuman) const
 {
+	// alpha_heroes (not a bug fix): VCMI_ADVENTURE_AI_<COLOR> (e.g. VCMI_ADVENTURE_AI_BLUE=Nullkiller2) overrides this
+	// player's adventure AI, so one game can seat different AIs (an evaluation against Nullkiller2)
+	if(!battleAI)
+		if(const char * override = std::getenv(("VCMI_ADVENTURE_AI_" + boost::to_upper_copy(ps.color.toString())).c_str()))
+			return override;
 	if(ps.name.size())
 	{
 		const boost::filesystem::path aiPath = VCMIDirs::get().fullLibraryPath("AI", ps.name);
