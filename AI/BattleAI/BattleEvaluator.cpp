@@ -141,7 +141,11 @@ std::optional<PossibleSpellcast> BattleEvaluator::findBestCreatureSpell(const CS
 	TConstBonusListPtr bl = stack->getBonusesOfType(BonusType::SPELLCASTER);
 
 	//TODO: faerie dragon type spell should be selected by server
-	SpellID creatureSpellToCast = cb->getBattle(battleID)->getRandomCastedSpell(CRandomGenerator::getDefault(), stack);
+	// alpha_heroes (not a bug fix): drawn from a generator seeded by the battle's state (the round, this stack and its
+	// place), not from this thread's default one, which is seeded from the clock: a battle with the same seed then plays
+	// the same every time, so two models' evaluations on the same battles differ by the models alone
+	CRandomGenerator stateRandom(static_cast<int>(cb->getBattle(battleID)->battleGetRound() * 1000003 + stack->unitId() * 7919 + stack->getPosition().toInt()));
+	SpellID creatureSpellToCast = cb->getBattle(battleID)->getRandomCastedSpell(stateRandom, stack);
 
 	for(const auto & bonus : *bl)
 		if(!bonus->parameters && bonus->subtype.as<SpellID>().hasValue())

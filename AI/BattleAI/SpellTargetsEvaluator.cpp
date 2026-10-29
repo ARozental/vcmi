@@ -55,7 +55,10 @@ std::vector<Target> SpellTargetEvaluator::defaultLocationSpellHeuristics(const s
 		auto surroundingHexes = unit->getSurroundingHexes();
 		if(!surroundingHexes.empty())
 		{
-			auto randomSurroundingHex = *RandomGeneratorUtil::nextItem(surroundingHexes, CRandomGenerator::getDefault()); // don't think this method bias matter with such small numbers
+			// alpha_heroes (not a bug fix): seeded by the unit and its place, not the thread's clock-seeded generator (as in
+			// BattleEvaluator::findBestCreatureSpell): the same battle plays the same every time
+			CRandomGenerator stateRandom(static_cast<int>(unit->unitId() * 7919 + unit->getPosition().toInt()));
+			auto randomSurroundingHex = *RandomGeneratorUtil::nextItem(surroundingHexes, stateRandom); // don't think this method bias matter with such small numbers
 			addIfCanBeCast(spellMechanics, randomSurroundingHex, result);
 		}
 	}
