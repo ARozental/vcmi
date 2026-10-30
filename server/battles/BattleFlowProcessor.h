@@ -52,7 +52,15 @@ class BattleFlowProcessor : boost::noncopyable
 	void castOpeningSpells(const CBattleInfoCallback & battle);
 	void activateNextStack(const CBattleInfoCallback & battle);
 	void startNextRound(const CBattleInfoCallback & battle, bool isFirstRound);
-	bool roundLimitReached(const CBattleInfoCallback & battle); // alpha_heroes: ROUND_LIMIT
+	bool stalemateReached(const CBattleInfoCallback & battle); // alpha_heroes: STALEMATE_ROUNDS
+
+	struct QuietRounds // alpha_heroes: what the stalemate rule remembers of a battle
+	{
+		int32_t round = 0; // the round of the last look
+		int32_t lastDamage = 0; // the last round in which a unit lost health
+		std::map<uint32_t, int64_t> health; // each unit's health at the last look
+	};
+	std::map<int32_t, QuietRounds> quietRounds; // by battle number
 
 	void stackEnchantedTrigger(const CBattleInfoCallback & battle, const CStack * stack);
 	void removeObstacle(const CBattleInfoCallback & battle, const CObstacleInstance & obstacle);

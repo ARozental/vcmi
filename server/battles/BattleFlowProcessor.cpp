@@ -273,35 +273,54 @@ void BattleFlowProcessor::startNextRound(const CBattleInfoCallback & battle, boo
 
 // alpha_heroes (not a bug fix): VCMI has no round limit (HotA's map setting is not implemented: MapFormatH3M), and a
 // battle where the side that cannot be caught cannot flee either (a garrison or monsters without a hero, behind,
-// keeping out of reach of an attacker that never retreats, e.g. BattleAI) went on until the game's time limit. At
-// ROUND_LIMIT the attacker gives up as a player would: it retreats (VCMI's own retreat, army lost, hero kept); if it
-// cannot, the defender does. AlphaBattleAI's own rules end its battles earlier (rounds 50 and 55). The environment
-// variable VCMI_BATTLE_ROUND_LIMIT sets another limit (a test: 2).
-static int32_t roundLimit()
+// keeping out of reach of an attacker that never retreats, e.g. BattleAI) went on until the game's time limit. As
+// chess's 50-move rule: after STALEMATE_ROUNDS rounds in a row in which no unit lost health, the attacker gives up as
+// a player would: it retreats (VCMI's own retreat, army lost, hero kept); if it cannot, the defender does.
+// AlphaBattleAI's own rules end its battles earlier. VCMI_BATTLE_STALEMATE_ROUNDS sets another count (a test: 2).
+static int32_t stalemateRounds()
 {
-	static const int32_t limit = [] {
-		const char * value = std::getenv("VCMI_BATTLE_ROUND_LIMIT");
-		return value && std::atoi(value) > 0 ? std::atoi(value) : 60;
+	static const int32_t rounds = [] {
+		const char * value = std::getenv("VCMI_BATTLE_STALEMATE_ROUNDS");
+		return value && std::atoi(value) > 0 ? std::atoi(value) : 50;
 	}();
-	return limit;
+	return rounds;
 }
 
-bool BattleFlowProcessor::roundLimitReached(const CBattleInfoCallback & battle)
+bool BattleFlowProcessor::stalemateReached(const CBattleInfoCallback & battle)
 {
-	const int32_t ROUND_LIMIT = roundLimit();
-	if (battle.battleGetRound() < ROUND_LIMIT)
+	const int32_t number = battle.getBattle()->getBattleID().getNum();
+	const int32_t round = battle.battleGetRound();
+	auto & quiet = quietRounds[number];
+	if (round <= quiet.round) // a new battle under a number seen before
+		quiet = QuietRounds();
+	std::map<uint32_t, int64_t> health;
+	for (const auto * stack : battle.battleGetAllStacks(true))
+		health[stack->unitId()] = stack->alive() ? stack->getAvailableHealth() : 0;
+	if (quiet.health.empty())
+		quiet.lastDamage = round;
+	for (const auto & [unit, now] : health)
+	{
+		const auto before = quiet.health.find(unit);
+		if (before != quiet.health.end() && now < before->second)
+			quiet.lastDamage = round;
+	}
+	quiet.round = round;
+	quiet.health = std::move(health);
+	const int32_t STALEMATE_ROUNDS = stalemateRounds();
+	if (round - quiet.lastDamage < STALEMATE_ROUNDS)
 		return false;
 	for (BattleSide side : {BattleSide::ATTACKER, BattleSide::DEFENDER})
 	{
 		if (battle.battleCanFlee(battle.sideToPlayer(side)))
 		{
-			logGlobal->info("Battle round %d, the round limit: the %s retreats", battle.battleGetRound(), side == BattleSide::ATTACKER ? "attacker" : "defender");
+			logGlobal->info("Battle round %d, %d rounds without damage: the %s retreats", round, round - quiet.lastDamage, side == BattleSide::ATTACKER ? "attacker" : "defender");
+			quietRounds.erase(number);
 			owner->setBattleResult(battle, EBattleResult::ESCAPE, battle.otherSide(side));
 			return true;
 		}
 	}
-	if (battle.battleGetRound() == ROUND_LIMIT)
-		logGlobal->warn("Battle round %d, the round limit: neither side can retreat, the battle goes on", battle.battleGetRound());
+	if (round - quiet.lastDamage == STALEMATE_ROUNDS)
+		logGlobal->warn("Battle round %d, %d rounds without damage: neither side can retreat, the battle goes on", round, STALEMATE_ROUNDS);
 	return false;
 }
 
@@ -357,7 +376,7 @@ void BattleFlowProcessor::activateNextStack(const CBattleInfoCallback & battle)
 		{
 			// No stacks to move - start next round
 			startNextRound(battle, false);
-			if (roundLimitReached(battle))
+			if (stalemateReached(battle))
 				return;
 			next = getNextStack(battle);
 			if (!next)
