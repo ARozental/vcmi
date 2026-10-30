@@ -535,6 +535,7 @@ public:
 	bfs::path userDataPath() const override;
 	bfs::path userCachePath() const override;
 	bfs::path userConfigPath() const override;
+	bfs::path userLogsPath() const override;
 
 	std::vector<bfs::path> dataPaths() const override;
 
@@ -546,6 +547,10 @@ public:
 
 bfs::path VCMIDirsXDG::userDataPath() const
 {
+	// Allows keeping all user data (game files, config, saves, logs) in a custom location, as on macOS
+	if(const char * userDir = getenv("VCMI_USER_DIR"))
+		return bfs::path(userDir);
+
 	// $XDG_DATA_HOME, default: $HOME/.local/share
 	const char* homeDir;
 	if((homeDir = getenv("XDG_DATA_HOME")))
@@ -557,6 +562,9 @@ bfs::path VCMIDirsXDG::userDataPath() const
 }
 bfs::path VCMIDirsXDG::userCachePath() const
 {
+	if(const char * userDir = getenv("VCMI_USER_DIR"))
+		return bfs::path(userDir);
+
 	// $XDG_CACHE_HOME, default: $HOME/.cache
 	const char * tempResult;
 	if ((tempResult = getenv("XDG_CACHE_HOME")))
@@ -568,6 +576,9 @@ bfs::path VCMIDirsXDG::userCachePath() const
 }
 bfs::path VCMIDirsXDG::userConfigPath() const
 {
+	if(const char * userDir = getenv("VCMI_USER_DIR"))
+		return bfs::path(userDir) / "config";
+
 	// $XDG_CONFIG_HOME, default: $HOME/.config
 	const char * tempResult = getenv("XDG_CONFIG_HOME");
 	if (tempResult)
@@ -578,6 +589,13 @@ bfs::path VCMIDirsXDG::userConfigPath() const
 		return bfs::path(tempResult) / ".config" / "vcmi";
 
 	return ".";
+}
+
+bfs::path VCMIDirsXDG::userLogsPath() const
+{
+	if(const char * userDir = getenv("VCMI_USER_DIR"))
+		return bfs::path(userDir) / "logs";
+	return IVCMIDirsUNIX::userLogsPath();
 }
 
 std::vector<bfs::path> VCMIDirsXDG::dataPaths() const
