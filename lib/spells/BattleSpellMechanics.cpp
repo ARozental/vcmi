@@ -275,6 +275,17 @@ bool BattleSpellMechanics::canBeCastAt(const Target & target, Problem & problem)
 	if(!canBeCast(problem))
 		return false;
 
+	return canBeCastAtIfCastable(target, problem);
+}
+
+bool BattleSpellMechanics::canBeCastAtIfCastable(const Target & target) const
+{
+	spells::detail::ProblemImpl ignore;
+	return canBeCastAtIfCastable(target, ignore);
+}
+
+bool BattleSpellMechanics::canBeCastAtIfCastable(const Target & target, Problem & problem) const
+{
 	Target spellTarget = transformSpellTarget(target);
 
 	const battle::Unit * mainTarget = nullptr;

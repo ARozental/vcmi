@@ -43,6 +43,10 @@ public:
 	/// Returns false if spell can not be cast at specified target
 	bool canBeCastAt(const Target & target) const override;
 	bool canBeCastAt(const Target & target, Problem & problem) const override;
+	/// canBeCastAt for a spell whose canBeCast is true: only the checks of this target (alpha_heroes, performance: an AI
+	/// asking about every hex checked the whole battlefield again for each; the answers are the same)
+	bool canBeCastAtIfCastable(const Target & target) const;
+	bool canBeCastAtIfCastable(const Target & target, Problem & problem) const;
 
 	// TODO: ??? (what's the difference compared to applyEffects?)
 	void cast(ServerCallback * server, const Target & target) override final;
