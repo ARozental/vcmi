@@ -271,6 +271,40 @@ void BattleFlowProcessor::startNextRound(const CBattleInfoCallback & battle, boo
 	}
 }
 
+// alpha_heroes (not a bug fix): VCMI has no round limit (HotA's map setting is not implemented: MapFormatH3M), and a
+// battle where the side that cannot be caught cannot flee either (a garrison or monsters without a hero, behind,
+// keeping out of reach of an attacker that never retreats, e.g. BattleAI) went on until the game's time limit. At
+// ROUND_LIMIT the attacker gives up as a player would: it retreats (VCMI's own retreat, army lost, hero kept); if it
+// cannot, the defender does. AlphaBattleAI's own rules end its battles earlier (rounds 50 and 55). The environment
+// variable VCMI_BATTLE_ROUND_LIMIT sets another limit (a test: 2).
+static int32_t roundLimit()
+{
+	static const int32_t limit = [] {
+		const char * value = std::getenv("VCMI_BATTLE_ROUND_LIMIT");
+		return value && std::atoi(value) > 0 ? std::atoi(value) : 60;
+	}();
+	return limit;
+}
+
+bool BattleFlowProcessor::roundLimitReached(const CBattleInfoCallback & battle)
+{
+	const int32_t ROUND_LIMIT = roundLimit();
+	if (battle.battleGetRound() < ROUND_LIMIT)
+		return false;
+	for (BattleSide side : {BattleSide::ATTACKER, BattleSide::DEFENDER})
+	{
+		if (battle.battleCanFlee(battle.sideToPlayer(side)))
+		{
+			logGlobal->info("Battle round %d, the round limit: the %s retreats", battle.battleGetRound(), side == BattleSide::ATTACKER ? "attacker" : "defender");
+			owner->setBattleResult(battle, EBattleResult::ESCAPE, battle.otherSide(side));
+			return true;
+		}
+	}
+	if (battle.battleGetRound() == ROUND_LIMIT)
+		logGlobal->warn("Battle round %d, the round limit: neither side can retreat, the battle goes on", battle.battleGetRound());
+	return false;
+}
+
 const CStack * BattleFlowProcessor::getNextStack(const CBattleInfoCallback & battle)
 {
 	std::vector<battle::Units> q;
@@ -323,6 +357,8 @@ void BattleFlowProcessor::activateNextStack(const CBattleInfoCallback & battle)
 		{
 			// No stacks to move - start next round
 			startNextRound(battle, false);
+			if (roundLimitReached(battle))
+				return;
 			next = getNextStack(battle);
 			if (!next)
 				throw std::runtime_error("Failed to find valid stack to act!");

@@ -52,6 +52,7 @@ class BattleFlowProcessor : boost::noncopyable
 	void castOpeningSpells(const CBattleInfoCallback & battle);
 	void activateNextStack(const CBattleInfoCallback & battle);
 	void startNextRound(const CBattleInfoCallback & battle, bool isFirstRound);
+	bool roundLimitReached(const CBattleInfoCallback & battle); // alpha_heroes: ROUND_LIMIT
 
 	void stackEnchantedTrigger(const CBattleInfoCallback & battle, const CStack * stack);
 	void removeObstacle(const CBattleInfoCallback & battle, const CObstacleInstance & obstacle);
