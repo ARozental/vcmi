@@ -333,6 +333,9 @@ std::vector<const CStack *> BattleSpellMechanics::getAffectedStacks(const Target
 
 	std::vector<const CStack *> res;
 	std::copy(stacks.begin(), stacks.end(), std::back_inserter(res));
+	// (alpha_heroes; bug fix) in unit id order, not the stacks' memory addresses, which differ between runs: a
+	// spell-like attack (Magog, Lich) draws each target's damage from the random generator in this order
+	std::sort(res.begin(), res.end(), [](const CStack * a, const CStack * b) { return a->unitId() < b->unitId(); });
 	return res;
 }
 

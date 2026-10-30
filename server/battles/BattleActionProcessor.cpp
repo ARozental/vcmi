@@ -1090,7 +1090,11 @@ void BattleActionProcessor::makeAttack(const CBattleInfoCallback & battle, const
 
 	//multiple-hex normal attack
 	const auto & [attackedCreatures, useCustomAnimation] = battle.getAttackedCreatures(attacker, targetHex, bat.shot()); //creatures other than primary target
-	for(const CStack * stack : attackedCreatures)
+	// (alpha_heroes; bug fix) in unit id order: each target draws its damage from the random generator, and the set's
+	// order is the stacks' memory addresses, which differ between runs of the same battle
+	std::vector<const CStack *> attackedInOrder(attackedCreatures.begin(), attackedCreatures.end());
+	std::sort(attackedInOrder.begin(), attackedInOrder.end(), [](const CStack * a, const CStack * b) { return a->unitId() < b->unitId(); });
+	for(const CStack * stack : attackedInOrder)
 	{
 		if(stack != defender && stack->alive()) //do not hit same stack twice
 		{

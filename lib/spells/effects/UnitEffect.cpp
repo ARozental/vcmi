@@ -182,6 +182,10 @@ EffectTarget UnitEffect::transformTargetByRange(const Mechanics * m, const Targe
 	for(const auto *s : targets)
 		effectTarget.push_back(Destination(s));
 
+	// (alpha_heroes; bug fix) in unit id order, not the units' memory addresses, which differ between runs: a damage
+	// spell draws each killed unit's rebirth (Phoenix) from the random generator in this order
+	std::sort(effectTarget.begin(), effectTarget.end(), [](const Destination & a, const Destination & b) { return a.unitValue->unitId() < b.unitValue->unitId(); });
+
 	return effectTarget;
 }
 
