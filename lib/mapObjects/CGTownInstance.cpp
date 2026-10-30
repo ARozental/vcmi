@@ -1086,6 +1086,11 @@ void CGTownInstance::serializeJsonOptions(JsonSerializeFormat & handler)
 				customBuildings = true;
 			}
 
+			// A town with the default set (BuildingID::DEFAULT: the game gives it its standard buildings as it starts, the
+			// tavern and the first dwellings among them) and a fort, as the random map generator places them, is saved as
+			// hasFort: the fort alone made its buildings "custom", saved as the fort only, and the default set was lost
+			// when the map was loaded (alpha_heroes; bug fix)
+			const bool defaultSet = builtBuildings.count(BuildingID::DEFAULT) != 0;
 			for(const BuildingID & id : builtBuildings)
 			{
 				if(id == BuildingID::DEFAULT)
@@ -1100,7 +1105,8 @@ void CGTownInstance::serializeJsonOptions(JsonSerializeFormat & handler)
 					hasFort = true;
 
 				buildingsLIC.all.insert(id.getNum());
-				customBuildings = true;
+				if(!(defaultSet && id == BuildingID::FORT))
+					customBuildings = true;
 			}
 
 			if(customBuildings)
