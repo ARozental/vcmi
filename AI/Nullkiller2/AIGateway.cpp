@@ -1078,10 +1078,14 @@ bool AIGateway::moveHeroToTile(const int3 dst, const HeroPtr & heroPtr)
 		}
 		int i = (int)path.nodes.size() - 1;
 
-		auto getObj = [&](int3 coord, bool ignoreHero)
+		auto getObj = [&](int3 coord, bool ignoreHero) -> const CGObjectInstance *
 		{
 			auto tile = cc->getTile(coord, false);
-			assert(tile);
+			// alpha_heroes bug fix: a path's tile this player cannot see is nullptr here (getTile, not verbose), and the
+			// assert is gone in a release build: topVisitableObj read through it and the game crashed (EXC_BAD_ACCESS at
+			// 0x10, ExecuteHeroChain::moveHeroToTile, 2026-11-01). No object there; its callers take nullptr
+			if(!tile)
+				return nullptr;
 			return cc->getObj(tile->topVisitableObj(ignoreHero), false);
 		};
 
