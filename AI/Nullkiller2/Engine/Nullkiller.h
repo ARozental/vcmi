@@ -23,6 +23,10 @@
 
 #include "../../../lib/ConditionalWait.h"
 
+// (fork, alpha_heroes) Nullkiller::keepPlan, lastPlan, Composition::getSubtasks: labels for AlphaMapAI's advice (its
+// Advice.cpp builds on them only where this is defined: with an upstream Nullkiller2 it records no plan)
+#define NK2_KEEPS_PLAN 1
+
 VCMI_LIB_NAMESPACE_BEGIN
 
 class PathfinderCache;
@@ -112,6 +116,13 @@ public:
 	std::shared_ptr<CCallback> cc;
 	mutable std::mutex aiStateMutex; // also held while planning (decompose, buildPlanAndFilter, choseBestTask): they read the analyzers
 	mutable ThreadInterruption makingTurnInterruption;
+	// (fork, alpha_heroes: labels for AlphaMapAI's advice, no behaviour change) with keepPlan, a turn's first pass plans
+	// right after its state update, before any task runs, keeps that plan (lastPlan, best first; lastPlanValid) and
+	// executes it: the plan stands whatever request the advice then takes, the priority pass's included
+	bool keepPlan = false;
+	bool lastPlanValid = false;
+	int lastPlanTier = 0;
+	Goals::TTaskVec lastPlan;
 
 	Nullkiller();
 	virtual ~Nullkiller();
@@ -147,6 +158,7 @@ private:
 	void decompose(Goals::TGoalVec & results, const Goals::TSubgoal& behavior, int decompositionMaxDepth) const;
 	Goals::TTask choseBestTask(Goals::TGoalVec & tasks) const;
 	Goals::TTaskVec buildPlanAndFilter(Goals::TGoalVec & tasks, int priorityTier) const;
+	Goals::TTaskVec planPass(Goals::TGoalVec & tasks, int & prioOfTask) const;
 	bool executeTask(const Goals::TTask & task) const;
 	bool areAffectedObjectsPresent(const Goals::TTask & task) const;
 	HeroRole getTaskRole(const Goals::TTask & task) const;

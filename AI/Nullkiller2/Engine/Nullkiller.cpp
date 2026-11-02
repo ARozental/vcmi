@@ -392,8 +392,8 @@ void Nullkiller::makeTurn()
 {
 	std::lock_guard<std::mutex> sharedStorageLock(AISharedStorage::locker);
 	pathfinderTurnStorageMisses.store(0);
-	const int MAX_DEPTH = 10;
 	resetState();
+	lastPlanValid = false; // (fork, alpha_heroes: keepPlan)
 	Goals::TGoalVec tasks;
 	tracePlayerStatus(true);
 
@@ -408,43 +408,17 @@ void Nullkiller::makeTurn()
 		if (!updateStateAndExecutePriorityPass(tasks, pass))
 			return;
 
-		tasks.clear();
-		decompose(tasks, sptr(CaptureObjectsBehavior()), 1);
-		decompose(tasks, sptr(ClusterBehavior()), MAX_DEPTH);
-		decompose(tasks, sptr(DefenceBehavior()), MAX_DEPTH);
-		decompose(tasks, sptr(GatherArmyBehavior()), MAX_DEPTH);
-		// decompose(tasks, sptr(StayAtTownBehavior()), MAX_DEPTH);
-
-		if(!isOpenMap())
-			decompose(tasks, sptr(ExplorationBehavior()), MAX_DEPTH);
-
-		TTaskVec selectedTasks;
+		// (fork, alpha_heroes: the planning moved into planPass, unchanged; with keepPlan the first pass executes the plan
+		// kept before its priority tasks, made from the same state)
 		int prioOfTask = 0;
-		for(int prio = PriorityEvaluator::PriorityTier::INSTAKILL; prio <= PriorityEvaluator::PriorityTier::MAX_PRIORITY_TIER; ++prio)
+		TTaskVec selectedTasks;
+		if(keepPlan && pass == 1 && lastPlanValid)
 		{
-			prioOfTask = prio;
-			selectedTasks = buildPlanAndFilter(tasks, prio);
-			if (!selectedTasks.empty() || settings->isUseFuzzy())
-			{
-				// Activate for deep debugging, otherwise too noisy even for trace level 2
-// #if NK2AI_TRACE_LEVEL >= 2
-// 				for(auto t : tasks)
-// 				{
-// 					logAi->info("task of prio %d: %s, prio: %f", prio, t->toString(), t->asTask()->priority);
-// 				}
-// 				for(auto t : selectedTasks)
-// 				{
-// 					logAi->info("selected task of prio %d: %s, prio: %f", prio, t->toString(), t->priority);
-// 				}
-// #endif
-				break;
-			}
+			selectedTasks = lastPlan;
+			prioOfTask = lastPlanTier;
 		}
-
-		boost::range::sort(selectedTasks, [](const TTask& a, const TTask& b)
-		{
-			return a->priority > b->priority;
-		});
+		else
+			selectedTasks = planPass(tasks, prioOfTask);
 
 		if(selectedTasks.empty())
 		{
@@ -543,9 +517,60 @@ void Nullkiller::makeTurn()
 	}
 }
 
+// (fork, alpha_heroes) makeTurn's planning, moved here unchanged (keepPlan plans the same way before the priority
+// pass): every behavior's tasks, the plan of the first priority tier that has one (with fuzzy, the first tier's),
+// the best first
+Goals::TTaskVec Nullkiller::planPass(Goals::TGoalVec & tasks, int & prioOfTask) const
+{
+	const int MAX_DEPTH = 10;
+	tasks.clear();
+	decompose(tasks, sptr(CaptureObjectsBehavior()), 1);
+	decompose(tasks, sptr(ClusterBehavior()), MAX_DEPTH);
+	decompose(tasks, sptr(DefenceBehavior()), MAX_DEPTH);
+	decompose(tasks, sptr(GatherArmyBehavior()), MAX_DEPTH);
+	// decompose(tasks, sptr(StayAtTownBehavior()), MAX_DEPTH);
+
+	if(!isOpenMap())
+		decompose(tasks, sptr(ExplorationBehavior()), MAX_DEPTH);
+
+	TTaskVec selectedTasks;
+	prioOfTask = 0;
+	for(int prio = PriorityEvaluator::PriorityTier::INSTAKILL; prio <= PriorityEvaluator::PriorityTier::MAX_PRIORITY_TIER; ++prio)
+	{
+		prioOfTask = prio;
+		selectedTasks = buildPlanAndFilter(tasks, prio);
+		if (!selectedTasks.empty() || settings->isUseFuzzy())
+		{
+			// Activate for deep debugging, otherwise too noisy even for trace level 2
+// #if NK2AI_TRACE_LEVEL >= 2
+// 			for(auto t : tasks)
+// 			{
+// 				logAi->info("task of prio %d: %s, prio: %f", prio, t->toString(), t->asTask()->priority);
+// 			}
+// 			for(auto t : selectedTasks)
+// 			{
+// 				logAi->info("selected task of prio %d: %s, prio: %f", prio, t->toString(), t->priority);
+// 			}
+// #endif
+			break;
+		}
+	}
+
+	boost::range::sort(selectedTasks, [](const TTask& a, const TTask& b)
+	{
+		return a->priority > b->priority;
+	});
+	return selectedTasks;
+}
+
 bool Nullkiller::updateStateAndExecutePriorityPass(Goals::TGoalVec & tempResults, const int passIndex)
 {
 	updateState();
+	if(keepPlan && !lastPlanValid) // (fork, alpha_heroes: the plan before any task runs; makeTurn's first pass executes it)
+	{
+		lastPlan = planPass(tempResults, lastPlanTier);
+		lastPlanValid = true;
+	}
 
 	Goals::TTask bestPrioPassTask = taskptr(Goals::Invalid());
 	for(int i = 1; i <= settings->getMaxPriorityPass() && cc->getPlayerStatus(playerID) == EPlayerStatus::INGAME; i++)
