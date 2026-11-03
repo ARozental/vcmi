@@ -13,6 +13,9 @@
 #include <tbb/task_group.h>
 #include <tbb/global_control.h>
 
+#include <algorithm>
+#include <cstdlib>
+
 VCMI_LIB_NAMESPACE_BEGIN
 
 /// Helper class for running asynchronous tasks using TBB thread pool
@@ -32,6 +35,12 @@ class AsyncRunner : boost::noncopyable
 		// Issue confirmed to happen (but likely not limited to) on iPhone 12 Pro (2+4 cores) and on virtual systems with 2 cores
 		int cores = tbb::this_task_arena::max_concurrency();
 		int requiredWorkersCount = 4;
+		// alpha_heroes (performance, no behaviour change): VCMI_MAX_WORKERS caps the pool. A headless AI game on a
+		// 24-thread machine ran ~23 TBB workers, and Nullkiller2's parallel loops at every AI request kept ~13 of them
+		// spinning between loops: ~60% of the game's CPU, in ten games at once about 3 of the machine's 12 cores (2026-11-02)
+		if(const char * env = std::getenv("VCMI_MAX_WORKERS"))
+			if(const int limit = std::atoi(env); limit > 0)
+				cores = std::min(cores, limit);
 		return std::max(cores, requiredWorkersCount);
 	}
 
