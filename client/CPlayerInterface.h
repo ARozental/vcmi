@@ -94,9 +94,16 @@ public: // TODO: make private
 	bool isAutoFightOn; //Flag, switch it to stop quick combat. Don't touch if there is no battle interface.
 	bool isAutoFightEndBattle; //Flag, if battle forced to end with autocombat
 
+	// alpha_heroes (not a bug fix): with ALPHA_RECORD_HUMAN set, a recorder of this player's decisions beside the
+	// interface (the AlphaRecorderAI library: agents/AlphaMapAI/Recorder.cpp), passed the events it records from; it
+	// never acts. A battle's events stop reaching it once auto-combat plays the battle (its actions are not the player's)
+	std::shared_ptr<CGameInterface> recorder;
+	bool recorderSkipsBattle = false;
+
 protected: // Call-ins from server, should not be called directly, but only via GameInterface
 
 	void initGameInterface(std::shared_ptr<Environment> ENV, std::shared_ptr<CCallback> CB) override;
+	void requestSent(const CPackForServer * pack, int requestID) override; // (alpha_heroes: the recorder's)
 
 	void garrisonsChanged(ObjectInstanceID id1, ObjectInstanceID id2) override;
 	void buildChanged(const CGTownInstance *town, BuildingID buildingID, int what) override; //what: 1 - built, 2 - demolished

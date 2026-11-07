@@ -68,6 +68,7 @@
 #include "windows/settings/SettingsMainWindow.h"
 
 #include "../lib/callback/CDynLibHandler.h"
+#include "../lib/callback/CGlobalAI.h" // (alpha_heroes: the recorder)
 #include "../lib/CConfigHandler.h"
 #include "../lib/GameLibrary.h"
 #include "../lib/texts/CGeneralTextHandler.h"
@@ -170,6 +171,21 @@ void CPlayerInterface::initGameInterface(std::shared_ptr<Environment> ENV, std::
 
 	adventureInt.reset(new AdventureMapInterface());
 	adventureInt->onCurrentPlayerChanged(playerID);
+
+	// alpha_heroes (not a bug fix): ALPHA_RECORD_HUMAN records this player's decisions (CPlayerInterface.h's recorder),
+	// a human's only: never the spectator's interface beside AI players (an AI-only game's, --testmap's)
+	const char * record = std::getenv("ALPHA_RECORD_HUMAN");
+	if(record && *record && playerID.isValidPlayer() && cb->getStartInfo()->getIthPlayersSettings(playerID).isControlledByHuman())
+	{
+		recorder = CDynLibHandler::getNewAI("AlphaRecorderAI");
+		recorder->initGameInterface(ENV, CB);
+	}
+}
+
+void CPlayerInterface::requestSent(const CPackForServer * pack, int requestID)
+{
+	if(recorder) // (alpha_heroes: each request the player sends, as the game state still is before it)
+		recorder->requestSent(pack, requestID);
 }
 
 std::shared_ptr<const CPathsInfo> CPlayerInterface::getPathsInfo(const CGHeroInstance * h)
@@ -228,6 +244,8 @@ void CPlayerInterface::playerEndsTurn(PlayerColor player)
 
 void CPlayerInterface::playerStartsTurn(PlayerColor player)
 {
+	if(recorder) // (alpha_heroes)
+		recorder->playerStartsTurn(player);
 	if(ENGINE->windows().findWindows<AdventureMapInterface>().empty())
 	{
 		// after map load - remove all active windows and replace them with adventure map
@@ -304,6 +322,8 @@ void CPlayerInterface::gamePause(bool pause)
 
 void CPlayerInterface::yourTurn(QueryID queryID)
 {
+	if(recorder) // (alpha_heroes)
+		recorder->yourTurn(queryID);
 	closeAllDialogs();
 	CTutorialWindow::openWindowFirstTime(TutorialMode::TOUCH_ADVENTUREMAP);
 
@@ -527,6 +547,8 @@ void CPlayerInterface::receivedResource()
 void CPlayerInterface::heroGotLevel(const CGHeroInstance *hero, PrimarySkill pskill, std::vector<SecondarySkill>& skills, QueryID queryID)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder) // (alpha_heroes)
+		recorder->heroGotLevel(hero, pskill, skills, queryID);
 	waitWhileDialog();
 	ENGINE->sound().playSound(soundBase::heroNewLevel);
 	ENGINE->windows().createAndPushWindow<CLevelWindow>(hero, pskill, skills, [this, queryID](ui32 selection)
@@ -686,6 +708,10 @@ void CPlayerInterface::battleStart(const BattleID & battleID, const CCreatureSet
 		prepareAutoFightingAI(battleID, army1, army2, tile, hero1, hero2, side);
 	}
 
+	recorderSkipsBattle = isAutoFightOn; // (alpha_heroes: auto-combat's battle is not the player's)
+	if(recorder && !recorderSkipsBattle)
+		recorder->battleStart(battleID, army1, army2, tile, hero1, hero2, side, replayAllowed);
+
 	waitForAllDialogs();
 
 	BATTLE_EVENT_POSSIBLE_RETURN;
@@ -783,6 +809,8 @@ void CPlayerInterface::battleNewRound(const BattleID & battleID) //called at the
 void CPlayerInterface::actionStarted(const BattleID & battleID, const BattleAction &action)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder && !recorderSkipsBattle && !isAutoFightOn) // (alpha_heroes)
+		recorder->actionStarted(battleID, action);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
 	battleInt->startAction(action);
@@ -791,6 +819,8 @@ void CPlayerInterface::actionStarted(const BattleID & battleID, const BattleActi
 void CPlayerInterface::actionFinished(const BattleID & battleID, const BattleAction &action)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder && !recorderSkipsBattle && !isAutoFightOn) // (alpha_heroes)
+		recorder->actionFinished(battleID, action);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
 	battleInt->endAction(action);
@@ -814,6 +844,7 @@ void CPlayerInterface::activeStack(const BattleID & battleID, const CStack * sta
 	{
 		if (isAutoFightOn)
 		{
+			recorderSkipsBattle = true; // (alpha_heroes: auto-combat acts from here: not the player's)
 			//FIXME: we want client rendering to proceed while AI is making actions
 			// so unlock mutex while AI is busy since this might take quite a while, especially if hero has many spells
 			auto unlockInterface = vstd::makeUnlockGuard(ENGINE->interfaceMutex);
@@ -830,12 +861,16 @@ void CPlayerInterface::activeStack(const BattleID & battleID, const CStack * sta
 		cb->battleMakeUnitAction(battleID, BattleAction::makeDefend(stack));
 	}
 
+	if(recorder && !recorderSkipsBattle && !isAutoFightOn) // (alpha_heroes: the state the player is asked to act in)
+		recorder->activeStack(battleID, stack);
 	battleInt->stackActivated(stack);
 }
 
 void CPlayerInterface::battleEnd(const BattleID & battleID, const BattleResult *br, QueryID queryID)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder) // (alpha_heroes: the record of what the player played of this battle is sent)
+		recorder->battleEnd(battleID, br, queryID);
 	if(isAutoFightOn || autofightingAI)
 	{
 		isAutoFightOn = false;
@@ -888,6 +923,8 @@ void CPlayerInterface::battleStackMoved(const BattleID & battleID, const CStack 
 void CPlayerInterface::battleSpellCast(const BattleID & battleID, const BattleSpellCast * sc)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+		recorder->battleSpellCast(battleID, sc);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
 	battleInt->spellCast(sc);
@@ -915,6 +952,8 @@ void CPlayerInterface::battleTriggerEffect(const BattleID & battleID, const Batt
 void CPlayerInterface::battleStacksAttacked(const BattleID & battleID, const std::vector<BattleStackAttacked> & bsa, bool ranged)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+		recorder->battleStacksAttacked(battleID, bsa, ranged);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
 	std::vector<StackAttackedInfo> arg;
@@ -993,6 +1032,8 @@ void CPlayerInterface::battleGateStateChanged(const BattleID & battleID, const E
 void CPlayerInterface::yourTacticPhase(const BattleID & battleID, int distance)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+		recorder->yourTacticPhase(battleID, distance);
 }
 
 void CPlayerInterface::showInfoDialog(EInfoWindowMode type, const std::string &text, const std::vector<Component> & components, int soundID)
@@ -1085,6 +1126,8 @@ void CPlayerInterface::showYesNoDialog(const std::string &text, CFunctionList<vo
 void CPlayerInterface::showBlockingDialog(const std::string &text, const std::vector<Component> &components, QueryID askID, const int soundID, bool selection, bool cancel, bool safeToAutoaccept)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder) // (alpha_heroes: the question as asked, before the player answers)
+		recorder->showBlockingDialog(text, components, askID, soundID, selection, cancel, safeToAutoaccept);
 	waitWhileDialog();
 
 	movementController->requestMovementAbort();
@@ -1571,6 +1614,8 @@ int CPlayerInterface::getLastIndex( std::string namePrefix)
 void CPlayerInterface::gameOver(PlayerColor player, const EVictoryLossCheckResult & victoryLossCheckResult )
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder) // (alpha_heroes)
+		recorder->gameOver(player, victoryLossCheckResult);
 
 	if (player == playerID)
 	{
@@ -1663,6 +1708,8 @@ void CPlayerInterface::tryDigging(const CGHeroInstance * h)
 void CPlayerInterface::battleNewRoundFirst(const BattleID & battleID)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
+	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+		recorder->battleNewRoundFirst(battleID);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
 	battleInt->newRoundFirst();
