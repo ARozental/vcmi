@@ -184,8 +184,7 @@ void CPlayerInterface::initGameInterface(std::shared_ptr<Environment> ENV, std::
 
 void CPlayerInterface::requestSent(const CPackForServer * pack, int requestID)
 {
-	// (alpha_heroes: each request the player sends, as the game state still is before it; not auto-combat's actions)
-	if(recorder && !(dynamic_cast<const MakeAction *>(pack) && (isAutoFightOn || recorderSkipsBattle)))
+	if(recorder) // (alpha_heroes: each request sent for the player, auto-combat's too, as the game state is before it)
 		recorder->requestSent(pack, requestID);
 }
 
@@ -709,8 +708,7 @@ void CPlayerInterface::battleStart(const BattleID & battleID, const CCreatureSet
 		prepareAutoFightingAI(battleID, army1, army2, tile, hero1, hero2, side);
 	}
 
-	recorderSkipsBattle = isAutoFightOn; // (alpha_heroes: auto-combat's battle is not the player's)
-	if(recorder && !recorderSkipsBattle)
+	if(recorder) // (alpha_heroes)
 		recorder->battleStart(battleID, army1, army2, tile, hero1, hero2, side, replayAllowed);
 
 	waitForAllDialogs();
@@ -810,7 +808,7 @@ void CPlayerInterface::battleNewRound(const BattleID & battleID) //called at the
 void CPlayerInterface::actionStarted(const BattleID & battleID, const BattleAction &action)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
-	if(recorder && !recorderSkipsBattle && !isAutoFightOn) // (alpha_heroes)
+	if(recorder) // (alpha_heroes)
 		recorder->actionStarted(battleID, action);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
@@ -820,7 +818,7 @@ void CPlayerInterface::actionStarted(const BattleID & battleID, const BattleActi
 void CPlayerInterface::actionFinished(const BattleID & battleID, const BattleAction &action)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
-	if(recorder && !recorderSkipsBattle && !isAutoFightOn) // (alpha_heroes)
+	if(recorder) // (alpha_heroes)
 		recorder->actionFinished(battleID, action);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
@@ -845,7 +843,8 @@ void CPlayerInterface::activeStack(const BattleID & battleID, const CStack * sta
 	{
 		if (isAutoFightOn)
 		{
-			recorderSkipsBattle = true; // (alpha_heroes: auto-combat acts from here: not the player's)
+			if(recorder) // (alpha_heroes: the state auto-combat is asked to act in, for the player)
+				recorder->activeStack(battleID, stack);
 			//FIXME: we want client rendering to proceed while AI is making actions
 			// so unlock mutex while AI is busy since this might take quite a while, especially if hero has many spells
 			auto unlockInterface = vstd::makeUnlockGuard(ENGINE->interfaceMutex);
@@ -862,7 +861,7 @@ void CPlayerInterface::activeStack(const BattleID & battleID, const CStack * sta
 		cb->battleMakeUnitAction(battleID, BattleAction::makeDefend(stack));
 	}
 
-	if(recorder && !recorderSkipsBattle && !isAutoFightOn) // (alpha_heroes: the state the player is asked to act in)
+	if(recorder) // (alpha_heroes: the state the player is asked to act in)
 		recorder->activeStack(battleID, stack);
 	battleInt->stackActivated(stack);
 }
@@ -924,7 +923,7 @@ void CPlayerInterface::battleStackMoved(const BattleID & battleID, const CStack 
 void CPlayerInterface::battleSpellCast(const BattleID & battleID, const BattleSpellCast * sc)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
-	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+	if(recorder) // (alpha_heroes)
 		recorder->battleSpellCast(battleID, sc);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
@@ -953,7 +952,7 @@ void CPlayerInterface::battleTriggerEffect(const BattleID & battleID, const Batt
 void CPlayerInterface::battleStacksAttacked(const BattleID & battleID, const std::vector<BattleStackAttacked> & bsa, bool ranged)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
-	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+	if(recorder) // (alpha_heroes)
 		recorder->battleStacksAttacked(battleID, bsa, ranged);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 
@@ -1033,7 +1032,7 @@ void CPlayerInterface::battleGateStateChanged(const BattleID & battleID, const E
 void CPlayerInterface::yourTacticPhase(const BattleID & battleID, int distance)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
-	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+	if(recorder) // (alpha_heroes)
 		recorder->yourTacticPhase(battleID, distance);
 }
 
@@ -1709,7 +1708,7 @@ void CPlayerInterface::tryDigging(const CGHeroInstance * h)
 void CPlayerInterface::battleNewRoundFirst(const BattleID & battleID)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
-	if(recorder && !recorderSkipsBattle) // (alpha_heroes)
+	if(recorder) // (alpha_heroes)
 		recorder->battleNewRoundFirst(battleID);
 	BATTLE_EVENT_POSSIBLE_RETURN;
 

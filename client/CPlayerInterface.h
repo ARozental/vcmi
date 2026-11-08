@@ -96,9 +96,8 @@ public: // TODO: make private
 
 	// alpha_heroes (not a bug fix): with ALPHA_RECORD_HUMAN set, a recorder of this player's decisions beside the
 	// interface (the AlphaRecorderAI library: agents/AlphaMapAI/Recorder.cpp), passed the events it records from; it
-	// never acts. A battle's events stop reaching it once auto-combat plays the battle (its actions are not the player's)
+	// never acts. Auto-combat's battles too (the user, 2026-11-07: they are what the player chose to let it do)
 	std::shared_ptr<CGameInterface> recorder;
-	bool recorderSkipsBattle = false;
 
 protected: // Call-ins from server, should not be called directly, but only via GameInterface
 
