@@ -184,7 +184,8 @@ void CPlayerInterface::initGameInterface(std::shared_ptr<Environment> ENV, std::
 
 void CPlayerInterface::requestSent(const CPackForServer * pack, int requestID)
 {
-	if(recorder) // (alpha_heroes: each request the player sends, as the game state still is before it)
+	// (alpha_heroes: each request the player sends, as the game state still is before it; not auto-combat's actions)
+	if(recorder && !(dynamic_cast<const MakeAction *>(pack) && (isAutoFightOn || recorderSkipsBattle)))
 		recorder->requestSent(pack, requestID);
 }
 
