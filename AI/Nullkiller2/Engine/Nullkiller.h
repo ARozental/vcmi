@@ -26,6 +26,8 @@
 // (fork, alpha_heroes) Nullkiller::keepPlan, lastPlan, Composition::getSubtasks: labels for AlphaMapAI's advice (its
 // Advice.cpp builds on them only where this is defined: with an upstream Nullkiller2 it records no plan)
 #define NK2_KEEPS_PLAN 1
+// (fork, alpha_heroes) Nullkiller::adviceFixes, exchangeSettled: the advising Nullkiller2's meeting fixes (Advice.cpp)
+#define NK2_ADVICE_FIXES 1
 
 VCMI_LIB_NAMESPACE_BEGIN
 
@@ -123,6 +125,12 @@ public:
 	bool lastPlanValid = false;
 	int lastPlanTier = 0;
 	Goals::TTaskVec lastPlan;
+	// (fork, alpha_heroes: AlphaMapAI's advising Nullkiller2 only, no behaviour change unset) adviceFixes: no delivery
+	// of an army that holds the receiver's own (GatherArmyBehavior::deliverArmyToHero). exchangeSettled, when set: two
+	// heroes with nothing left to exchange (their armies as their last exchange ended), no delivery or chain exchange
+	// between them planned
+	bool adviceFixes = false;
+	std::function<bool(const CGHeroInstance *, const CGHeroInstance *)> exchangeSettled;
 
 	Nullkiller();
 	virtual ~Nullkiller();

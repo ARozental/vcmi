@@ -947,6 +947,17 @@ bool AINodeStorage::isDistanceLimitReached(const PathNodeInfo & source, CDestina
 	return false;
 }
 
+uint64_t AINodeStorage::heroMask(const CGHeroInstance * hero) const
+{
+	for(const auto & actor : actors) // (setHeroes' and setTownsAndDwellings': an object's actor has no hero)
+	{
+		if(actor->hero == hero)
+			return actor->chainMask;
+	}
+
+	return 0;
+}
+
 void AINodeStorage::setHeroes(std::map<const CGHeroInstance *, HeroRole> heroes)
 {
 	playerID = aiNk->playerID;

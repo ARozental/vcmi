@@ -67,6 +67,8 @@ Goals::TGoalVec GatherArmyBehavior::deliverArmyToHero(const Nullkiller * aiNk, c
 #endif
 
 	auto paths = aiNk->pathfinder->getPathInfo(pos, aiNk->isObjectGraphAllowed());
+	// (fork, alpha_heroes: adviceFixes) the receiver's own actor: a path whose army holds it brings the receiver its own
+	const uint64_t receiverMask = aiNk->adviceFixes ? aiNk->pathfinder->getStorage()->heroMask(receiverHero) : 0;
 
 #if NK2AI_TRACE_LEVEL >= 1
 	logAi->trace("GatherArmyBehavior::deliverArmyToHero Gather army found %d paths", paths.size());
@@ -90,6 +92,12 @@ Goals::TGoalVec GatherArmyBehavior::deliverArmyToHero(const Nullkiller * aiNk, c
 #endif
 			continue;
 		}
+
+		// (fork, alpha_heroes: the advising Nullkiller2 only) a carrier that joined the receiver ("C joined with R": R
+		// stands still, has no node, and containsHero misses it) brings it its own army, counted again as reinforcements:
+		// a delivery never satisfied, 51-63% of the advice's deliveries (2026-11-09). A pair whose exchange is settled
+		if((path.chainMask & receiverMask) || (aiNk->exchangeSettled && aiNk->exchangeSettled(path.targetHero, receiverHero)))
+			continue;
 
 		if(aiNk->arePathHeroesLocked(path))
 		{

@@ -271,6 +271,8 @@ public:
 		const std::vector<const CGTownInstance *> & towns,
 		const std::set<const CGObjectInstance *> & visitableObjs);
 	const std::set<const CGHeroInstance *> getAllHeroes() const;
+	/// (fork, alpha_heroes) the chain mask of the hero's own actor, 0 when it has none
+	uint64_t heroMask(const CGHeroInstance * hero) const;
 	void clear();
 	bool calculateHeroChain();
 	bool calculateHeroChainFinal();

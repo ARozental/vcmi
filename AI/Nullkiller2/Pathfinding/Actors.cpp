@@ -257,6 +257,10 @@ ExchangeResult HeroExchangeMap::tryExchangeNoLock(const ChainActor * other)
 
 		if(!differentMasks) return result;
 
+		// (fork, alpha_heroes: the advising Nullkiller2 only) two heroes whose exchange is settled
+		if(aiNk->exchangeSettled && actor->hero && other->hero && aiNk->exchangeSettled(actor->hero, other->hero))
+			return result;
+
 		if(actor->allowSpellCast || other->allowSpellCast)
 			return result;
 
