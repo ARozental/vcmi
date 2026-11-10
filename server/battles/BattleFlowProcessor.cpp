@@ -275,7 +275,10 @@ void BattleFlowProcessor::startNextRound(const CBattleInfoCallback & battle, boo
 // battle where the side that cannot be caught cannot flee either (a garrison or monsters without a hero, behind,
 // keeping out of reach of an attacker that never retreats, e.g. BattleAI) went on until the game's time limit. As
 // chess's 50-move rule: after STALEMATE_ROUNDS rounds in a row in which no unit lost health, the attacker gives up as
-// a player would: it retreats (VCMI's own retreat, army lost, hero kept); if it cannot, the defender does.
+// a player would: it retreats (VCMI's own retreat, army lost, hero kept); if it cannot, the defender does; if neither
+// can (the Shackles of War between two heroes, a besieged defender without an escape tunnel, a side without a hero, an
+// attacker that cast in the first rounds), the side whose army is worth less loses it (a tie: the attacker), as the
+// side not ahead gives up (2026-10-28). Those battles went on until the game's watchdog killed the game (2026-11-10).
 // AlphaBattleAI's own rules end its battles earlier. VCMI_BATTLE_STALEMATE_ROUNDS sets another count (a test: 2).
 static int32_t stalemateRounds()
 {
@@ -284,6 +287,21 @@ static int32_t stalemateRounds()
 		return value && std::atoi(value) > 0 ? std::atoi(value) : 50;
 	}();
 	return rounds;
+}
+
+// alpha_heroes (not a bug fix): what a side keeps if the battle ended now, at its creatures' AI value (as an army's
+// strength counts them): its living army stacks and permanently summoned units, not summoned units or clones (they
+// vanish), war machines or arrow towers
+static int64_t keptArmyValue(const CBattleInfoCallback & battle, BattleSide side)
+{
+	int64_t value = 0;
+	for (const auto * stack : battle.battleGetAllStacks(true))
+	{
+		const bool kept = !stack->isClone() && !stack->summoned && (stack->unitSlot().validSlot() || stack->unitSlot() == SlotID::SUMMONED_SLOT_PLACEHOLDER);
+		if (stack->unitSide() == side && stack->alive() && kept)
+			value += static_cast<int64_t>(stack->unitType()->getAIValue()) * stack->getCount();
+	}
+	return value;
 }
 
 bool BattleFlowProcessor::stalemateReached(const CBattleInfoCallback & battle)
@@ -319,8 +337,35 @@ bool BattleFlowProcessor::stalemateReached(const CBattleInfoCallback & battle)
 			return true;
 		}
 	}
-	if (round - quiet.lastDamage == STALEMATE_ROUNDS)
-		logGlobal->warn("Battle round %d, %d rounds without damage: neither side can retreat, the battle goes on", round, STALEMATE_ROUNDS);
+	// Neither side can retreat: the side whose army is worth less (a tie: the attacker) loses it. Its units are killed by
+	// the server's own damage (as a death blow, no attacker), so the battle ends as one whose loser has no army left: a
+	// NORMAL result through checkBattleStateChanges, its casualties and experience as ever, a beaten hero removed, a town
+	// or garrison taken with none of its troops left in it (a NORMAL result with living losers would have kept them)
+	const int64_t attackerValue = keptArmyValue(battle, BattleSide::ATTACKER);
+	const int64_t defenderValue = keptArmyValue(battle, BattleSide::DEFENDER);
+	const BattleSide loser = attackerValue > defenderValue ? BattleSide::DEFENDER : BattleSide::ATTACKER;
+	logGlobal->info("Battle round %d, %d rounds without damage: neither side can retreat, the %s loses its army (worth %d against %d)", round, round - quiet.lastDamage, loser == BattleSide::ATTACKER ? "attacker" : "defender", loser == BattleSide::ATTACKER ? attackerValue : defenderValue, loser == BattleSide::ATTACKER ? defenderValue : attackerValue);
+	for (int pass = 0; pass < 3; ++pass) // (a unit that rises again once, a Phoenix's rebirth: a pass more)
+	{
+		StacksInjured pack;
+		pack.battleID = battle.getBattle()->getBattleID();
+		for (const auto * stack : battle.battleGetStacksIf([loser](const CStack * unit) { return unit->unitSide() == loser && unit->alive() && !unit->isTurret(); }))
+		{
+			BattleStackAttacked bsa;
+			bsa.attackerID = -1;
+			bsa.stackAttacked = stack->unitId();
+			bsa.damageAmount = stack->getAvailableHealth();
+			stack->prepareAttacked(bsa, gameHandler->getRandomGenerator());
+			pack.stacks.push_back(bsa);
+		}
+		if (pack.stacks.empty())
+			break;
+		gameHandler->sendAndApply(pack);
+	}
+	quietRounds.erase(number);
+	if (owner->checkBattleStateChanges(battle))
+		return true;
+	logGlobal->error("Battle round %d: the stalemate's loser still has a unit alive, the battle goes on", round);
 	return false;
 }
 
