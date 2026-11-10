@@ -521,12 +521,17 @@ void AIGateway::initGameInterface(std::shared_ptr<Environment> env, std::shared_
 	memorizeVisitableObjs(nullkiller->memory, nullkiller->dangerHitMap, playerID, cc);
 }
 
+// (fork, alpha_heroes: bug fix) Turns started, by player colour, see AIGateway::endTurn. Here and not a member of
+// AIStatus: the agents' libraries include AIGateway.h, a member would change the class's layout under them
+static std::array<std::atomic<int>, PlayerColor::PLAYER_LIMIT_I> turnsStarted{};
+
 void AIGateway::yourTurn(QueryID queryID)
 {
 	LOG_TRACE_PARAMS(logAi, "queryID '%i'", queryID);
 	nullkiller->invalidatePathfinderData();
 	status.addQuery(queryID, "YourTurn");
 	executeActionAsync("yourTurn", [this, queryID](){ answerQuery(queryID, 0); });
+	turnsStarted[playerID.getNum()]++; // (fork, alpha_heroes: bug fix) before the flag goes up, see endTurn
 	status.startedTurn();
 
 	nullkiller->makingTurnInterruption.reset();
@@ -1338,11 +1343,21 @@ void AIGateway::endTurn()
 		return;
 	}
 
+	// (fork, alpha_heroes: bug fix) The loop asked for the turn's end again whenever the flag was up once its request
+	// was answered. The flag is one for all turns: when every other player's turn takes milliseconds (a 2-player game
+	// whose other player has nothing to do), our NEXT turn has raised it again by the time this thread looks, and this
+	// thread, the old turn's, ended the new turn as it began. The new turn's requests were then refused ("Player is
+	// not allowed to perform this action!"), the turn after it started a second makeTurn beside the first, and the
+	// client deadlocked (5 eval games of joint7 killed by the stall watchdog, 2026-11-06..10). The window: this thread
+	// waits for its request's answer without the game state's lock (Client.cpp) and takes it back against the network
+	// thread, which meanwhile applies every pack queued behind the answer, our next YourTurn among them. So: ask again
+	// only while it is still the turn this call is ending (turnsStarted, counted in yourTurn before the flag goes up)
+	const int turn = turnsStarted[playerID.getNum()];
 	do
 	{
 		cc->endTurn();
 	}
-	while(status.haveTurn()); //for some reasons, our request may fail -> stop requesting end of turn only after we've received a confirmation that it's over
+	while(status.haveTurn() && turnsStarted[playerID.getNum()] == turn); //for some reasons, our request may fail -> stop requesting end of turn only after we've received a confirmation that it's over
 
 	logGlobal->info("Player %d (%s) ended turn", playerID, playerID.toString());
 }
