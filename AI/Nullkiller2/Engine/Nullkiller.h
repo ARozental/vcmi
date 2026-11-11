@@ -133,6 +133,13 @@ public:
 	// heroes with nothing left to exchange (their armies as their last exchange ended), no delivery or chain exchange
 	// between them planned
 	bool adviceFixes = false;
+	// (fork, alpha_heroes: a label for AlphaMapAI's advice diagnostics, no behaviour change) the task executing now, by
+	// its description (executeTask): which of its goals issued a request
+	mutable std::string executingTask;
+	// (fork, alpha_heroes: AlphaMapAI's advising Nullkiller2 only, no behaviour change while empty) heroes it treats as
+	// locked for defence from the start of its turn (resetState clears every lock): a hero whose task is to stay where it
+	// is (a Defend composition's re-visit of the town it stands in), so its next request is the advice
+	std::vector<const CGHeroInstance *> adviceHeld;
 	std::function<bool(const CGHeroInstance *, const CGHeroInstance *)> exchangeSettled;
 
 	Nullkiller();

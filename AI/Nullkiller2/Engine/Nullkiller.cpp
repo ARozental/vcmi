@@ -393,6 +393,8 @@ void Nullkiller::makeTurn()
 	std::lock_guard<std::mutex> sharedStorageLock(AISharedStorage::locker);
 	pathfinderTurnStorageMisses.store(0);
 	resetState();
+	for(const auto * hero : adviceHeld) // (fork, alpha_heroes: AlphaMapAI's advice, Nullkiller.h)
+		lockedHeroes[hero] = HeroLockedReason::DEFENCE;
 	lastPlanValid = false; // (fork, alpha_heroes: keepPlan)
 	Goals::TGoalVec tasks;
 	tracePlayerStatus(true);
@@ -645,6 +647,7 @@ bool Nullkiller::executeTask(const Goals::TTask & task) const
 {
 	auto start = std::chrono::high_resolution_clock::now();
 	std::string taskDescr = task->toString();
+	executingTask = taskDescr; // (fork, alpha_heroes: AlphaMapAI's advice diagnostics, Nullkiller.h)
 
 	makingTurnInterruption.interruptionPoint();
 	logAi->debug("Trying to realize %s (value %2.3f)", taskDescr, task->priority);
