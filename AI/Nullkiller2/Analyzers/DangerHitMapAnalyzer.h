@@ -59,7 +59,8 @@ struct EnemyHeroAccessibleObject
 	}
 };
 
-class DangerHitMapAnalyzer
+// (fork, alpha_heroes: exported for AlphaMapAI's schema-19 inputs, no behaviour change)
+class DLL_EXPORT DangerHitMapAnalyzer
 {
 private:
 	boost::multi_array<HitMapNode, 3> hitMap;

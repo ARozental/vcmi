@@ -125,6 +125,9 @@ public:
 	bool lastPlanValid = false;
 	int lastPlanTier = 0;
 	Goals::TTaskVec lastPlan;
+	// (fork, alpha_heroes: inputs for AlphaMapAI (schema 19), no behaviour change) with keepPlan, every task of the kept plan's
+	// pass as planPass left it: scored at lastPlanTier, the best first
+	Goals::TGoalVec lastCandidates;
 	// (fork, alpha_heroes: AlphaMapAI's advising Nullkiller2 only, no behaviour change unset) adviceFixes: no delivery
 	// of an army that holds the receiver's own (GatherArmyBehavior::deliverArmyToHero). exchangeSettled, when set: two
 	// heroes with nothing left to exchange (their armies as their last exchange ended), no delivery or chain exchange

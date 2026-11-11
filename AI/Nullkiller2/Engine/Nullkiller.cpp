@@ -569,6 +569,7 @@ bool Nullkiller::updateStateAndExecutePriorityPass(Goals::TGoalVec & tempResults
 	if(keepPlan && !lastPlanValid) // (fork, alpha_heroes: the plan before any task runs; makeTurn's first pass executes it)
 	{
 		lastPlan = planPass(tempResults, lastPlanTier);
+		lastCandidates = tempResults; // (fork, alpha_heroes: schema 19's inputs)
 		lastPlanValid = true;
 	}
 

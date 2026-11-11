@@ -100,7 +100,8 @@ public:
 
 class Nullkiller;
 
-class PriorityEvaluator
+// (fork, alpha_heroes: exported for AlphaMapAI's schema-19 inputs, no behaviour change)
+class DLL_EXPORT PriorityEvaluator
 {
 public:
 	PriorityEvaluator(const Nullkiller * aiNk);
@@ -108,6 +109,9 @@ public:
 	void initVisitTile();
 
 	float evaluate(Goals::TSubgoal task, int priorityTier = BUILDINGS);
+	// (fork, alpha_heroes: public, no behaviour change) what evaluate scores a task from: AlphaMapAI's inputs (schema 19)
+	// read its movement cost, army loss and danger ratios and its kind of target
+	EvaluationContext buildEvaluationContext(const Goals::TSubgoal & goal) const;
 
 	enum PriorityTier : int32_t
 	{
@@ -144,7 +148,6 @@ private:
 	fl::OutputVariable * value;
 	std::vector<std::shared_ptr<IEvaluationContextBuilder>> evaluationContextBuilders;
 
-	EvaluationContext buildEvaluationContext(const Goals::TSubgoal & goal) const;
 	static float evaluateMovement(float score, float movementCost);
 	static float evaluateArmyLossRatio(float score, float armyLossRatio, HeroRole heroRole);
 	static float evaluateSkillReward(float score, float skillReward, float armyInvolvement, float armyLossRatio);
